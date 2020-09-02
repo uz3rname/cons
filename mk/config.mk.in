@@ -1,0 +1,59 @@
+ROOT			?= .
+
+PACKAGE_NAME	= @PACKAGE_NAME@
+PACKAGE_VERSION	= @PACKAGE_VERSION@
+
+CSC				= @CSC@
+AS				= @AS@
+LD				= @LD@
+CC				= @CC@
+AR				= @AR@
+INSTALL			= $(BIN_DIR)/install.sh
+
+prefix			= @prefix@
+exec_prefix		= @exec_prefix@
+bindir			= @bindir@
+libdir			= @libdir@
+
+BSTRAP_DIR		= $(ROOT)/bootstrap
+BIN_DIR			= $(ROOT)/bin
+
+COMPILER		= consc
+COMPILER_PATH	= $(BIN_DIR)/$(COMPILER)
+
+MODULES			= core sys math lex iter json
+LIB_DIR			= $(ROOT)/lib
+LIB_FILES		= $(MODULES:%=%.a)
+VIM_DIR			= @VIM_DIR@
+
+CFLAGS			= @CFLAGS@ -fomit-frame-pointer -fPIC -std=c99
+LDFLAGS			= @LDFLAGS@
+ASFLAGS			= @ASFLAGS@
+CSC_OPTIMIZE	= -optimize-leaf-routines\
+				  -disable-interrupts\
+				  -local\
+				  -unsafe\
+				  -inline-global\
+				  -disable-stack-overflow-checks\
+				  -inline\
+				  -specialize\
+				  -no-argc-checks\
+				  -no-bound-checks\
+				  -no-procedure-checks\
+				  -clustering\
+				  -lfa2\
+				  -strip
+CSC_NODEBUG		= -no-trace\
+				  -no-lambda-info
+CSCFLAGS		= -no-usual-integrations\
+				  -cc $(CC)\
+				  -C '$(CFLAGS)'\
+				  @csc_flags@
+COMPILER_FLAGS	= @compiler_flags@ -L$(LIB_DIR)
+OS_TYPE			= @OS_TYPE@
+ARCH			= @ARCH@
+
+INSTALL_TARGETS	= @INSTALL_TARGETS@
+TARGETS			= @TARGETS@
+CONFIG_FILES	= @CONFIG_FILES@
+

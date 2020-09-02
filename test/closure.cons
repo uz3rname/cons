@@ -1,0 +1,31 @@
+;result = 49
+(include "inc/memory.cons")
+(extern puts
+  ((:: *byte -> void))
+  )
+(extern printf
+  ((:: *byte ... -> void))
+  )
+(extern rand ((:: -> int)))
+(extern sqrt ((:: real -> real)))
+(declare (link-with "m"))
+
+(def sqr (x) (:: a -> a)
+  (* x x))
+
+(def double (x) (:: a -> a)
+  (+ x x))
+
+(def adder (x) (:: a -> (a -> a))
+  (fn (y) (:: <a> -> <a>)
+    (+ x y)))
+
+(def cmps (g f) (:: (b -> c) (a -> b) -> (a -> c))
+  (fn (x)
+    (g (f x))))
+
+((cmps sqr
+       (cmps (adder 3)
+             double))
+ 2)
+

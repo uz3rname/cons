@@ -1,0 +1,26 @@
+;output = thisistest
+(include "inc/io.cons")
+(include "inc/memory.cons")
+
+(type (array a)
+  ((.element-size int)
+   (.length int)
+   (.buf-size int)
+   (.buf *a)))
+
+(def print-array (xs) (:: #[a] -> void)
+  (let ((l (.length xs))
+        (buf (.buf xs)))
+    (def loop (i) (:: int -> void)
+      (if (>= i l)
+        ()
+        (begin
+          (display (deref (offset buf i)))
+          (loop (+ i 1)))))
+    (loop 0)))
+
+(let ((t #\t)
+      (s #\s))
+  (print-array
+    #[t #\h #\i s #\i s t #\e s t]))
+

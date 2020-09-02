@@ -1,0 +1,12 @@
+(extern malloc
+  ((:: int -> *void)))
+(extern memset
+  ((:: *void int int -> void)))
+
+(include "core/macro.cons")
+
+(declare (single mem-alloc)
+         (export mem-alloc))
+(def mem-alloc (n) (:: int -> *void)
+  (malloc n))
+

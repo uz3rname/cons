@@ -1,0 +1,16 @@
+;output = 250
+(include "inc/values.cons")
+(include "inc/memory.cons")
+(include "inc/io.cons")
+
+(def test (x) (:: int -> char)
+  (let ((ch (+ x 48)))
+    (values (-> ch :: char)
+            ch)))
+
+(call-with-values
+  (fn () (test 2))
+  (fn (x y) (:: char int -> void)
+    (display x)
+    (display y)))
+

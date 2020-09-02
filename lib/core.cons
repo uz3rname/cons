@@ -1,0 +1,11 @@
+(declare (module core)
+         export-all
+         (link-with "-lc" "-lcons"))
+(include "core/config.cons")
+(include "core/macro.cons")
+(include "core/core.cons")
+(include "core/memory.cons")
+(include "core/io.cons")
+(include "core/runtime.cons")
+(include "core/string.cons")
+

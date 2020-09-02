@@ -1,0 +1,54 @@
+(extern c-memcpy
+  ((:: *void *void int -> *void) "memcpy"))
+
+(declare (single argv-init))
+(def argv-init (n p) (:: int *cstring -> [string])
+  (def loop (n res s) (:: int [string] *cstring -> [string])
+    (if (= n 0)
+      (reverse res)
+      (loop (- n 1)
+            (cons (cstring->string (deref s))
+                  res)
+            (offset s 1))))
+  (loop n [] p))
+
+(def null-ptr (-> 0 :: *void))
+
+(#$ if-eq mem-manager boehm-gc)
+
+(extern gc-malloc
+  ((:: int -> *void) "GC_malloc"))
+(extern gc-init
+  ((:: -> void) "GC_init"))
+(declare (foreign GC_set_warn_proc))
+(extern gc-set-warn-proc
+  ((:: (cstring int -> void) -> void) "GC_set_warn_proc"))
+(extern gc-ignore-warn-proc
+  ((:: cstring int -> void) "GC_ignore_warn_proc"))
+(extern gc-get-heap-size
+  ((:: -> int) "GC_get_heap_size"))
+
+(declare (single mem-alloc))
+(def mem-alloc (sz) (:: int -> *void)
+  (gc-malloc sz))
+
+(declare (single mem-init))
+(def mem-init () (:: -> void)
+  (gc-set-warn-proc gc-ignore-warn-proc)
+  (gc-init))
+
+(#$ else)
+
+(extern c-malloc
+  ((:: int -> *void) "malloc"))
+
+(declare (single mem-alloc))
+(def mem-alloc (sz) (:: int -> *void)
+  (c-malloc sz))
+
+(declare (single mem-init))
+(def mem-init () (:: -> void)
+  ())
+
+(#$ end-if)
+

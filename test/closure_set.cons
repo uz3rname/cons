@@ -1,0 +1,17 @@
+;result = 6
+(include "inc/memory.cons")
+
+;(def counter (from) (:: int -> (-> int))
+;  (fn () (:: -> int)
+;    (let ((x from))
+;      (set! from (+ from 1))
+;      x)))
+
+(def counter (from) (:: int -> (-> int))
+  (fn () (:: -> int)
+    (set! from (+ from 1))
+    (- from 1)))
+
+(let ((c (counter 1)))
+  (+ (c) (c) (c)))
+

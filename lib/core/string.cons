@@ -1,0 +1,157 @@
+(extern c-strlen
+  ((:: cstring -> int) "strlen"))
+
+(def utf8-byte-cnt (b) (:: byte -> int)
+  (cond
+    ((< b #x80)
+     1)
+    ((= (logand b #xe0) #xc0)
+     2)
+    ((= (logand b #xf0) #xe0)
+     3)
+    ((= (logand b #xf8) #xf0)
+     4)))
+
+(def utf8-byte-cnt (s) (:: cstring -> int)
+  (utf8-byte-cnt (deref s)))
+
+(def ucs2-length (s len) (:: cstring int -> int)
+  (def loop (i p len) (:: int cstring int -> int)
+    (if (<= i 0)
+      len
+      (let ((c (utf8-byte-cnt s)))
+        (loop (- i c)
+              (offset p c)
+              (+ len 1)))))
+  (loop len s 0))
+
+(def decode-utf8 (s) (:: cstring -> char)
+  (def byte (x) (:: int -> int)
+    (logand (deref (offset s x))
+            #x3f))
+  (let ((b (deref s)))
+    (cond
+      ((< b #x80)
+       (values (-> b :: char) 1))
+      ((= (logand b #xe0) #xc0)
+       (values (-> (logor (shl (logand b #x1f) 6)
+                          (byte 1))
+                   :: char)
+               2))
+      ((= (logand b #xf0) #xe0)
+       (values (-> (logor (shl (logand b #x0f) 12)
+                          (shl (byte 1) 6)
+                          (byte 2))
+                   :: char)
+               3))
+      ((= (logand b #xf8) #xf0)
+       (values (-> (logor (shl (logand b #x07) 18)
+                          (shl (byte 1) 12)
+                          (shl (byte 2) 6)
+                          (byte 3))
+                   :: char)
+               4))
+      (else (values (-> 0 :: char) 0)))))
+
+(def decode-utf8 (s len) (:: cstring int -> string)
+  (let* ((l (ucs2-length s len))
+         (buf (-> (mem-alloc (* l 4)) :: *char)))
+    (def loop (dest i src) (:: *char int cstring -> cstring)
+      (if (<= i 0)
+        buf
+        (let1 cnt (call-with-values
+                    (fn () (decode-utf8 src))
+                    (fn (ch cnt) (:: char int -> int)
+                      (mov! ch dest)
+                      cnt))
+          (loop (offset dest 1)
+                (- i cnt)
+                (offset src cnt)))))
+    #(4 l l (loop buf len s))))
+
+(def cstring->string (s) (:: cstring -> string)
+  (decode-utf8 s (c-strlen s)))
+
+(def utf8-length (c) (:: char -> int)
+  (let ((i (-> c :: int)))
+    (cond ((< i #x80)
+           1)
+          ((< i #x800)
+           2)
+          ((< i #xFFFF)
+           3)
+          ((< i #x10FFFF)
+           4))))
+
+(def utf8-length (s) (:: string -> int)
+  (foldr + 0 (map utf8-length s)))
+
+(macro set-bytes%
+  (($o $p $x)
+   (begin
+     (mov! (-> $x :: byte)
+           (offset $p $o))
+     (+ $o 1)))
+  (($o $p $x $xs ...)
+   (begin
+     (set-bytes% $o $p $x)
+     (set-bytes% (+ $o 1) $p $xs ...))))
+
+(macro set-bytes
+  (($p $args ...)
+   (set-bytes% 0 $p $args ...)))
+
+(def encode-utf8 (c buf) (:: char cstring -> int)
+  (let ((i (-> c :: int)))
+    (cond ((< i #x80)
+           (set-bytes buf i))
+          ((< i #x800)
+           (set-bytes
+             buf
+             (logor (shr i 6)
+                    #xc0)
+             (logor (logand i #x3f)
+                    #x80)))
+          ((< i #xFFFF)
+           (set-bytes
+             buf
+             (logor (shr i 12)
+                    #xe0)
+             (logor (logand (shr i 6)
+                            #x3f)
+                    #x80)
+             (logor (logand i #x3f)
+                    #x80)))
+          ((< i #x10FFFF)
+           (set-bytes
+             buf
+             (logor #xf0
+                    (shr i 18))
+             (logor #x80
+                    (logand (shr i 12)
+                            #x3f))
+             (logor #x80
+                    (logand (shr i 6)
+                            #x3f))
+             (logor #x80
+                    (logand i #x3f)))))))
+
+(def string->cstring (s) (:: string -> cstring)
+  (let ((buf (-> (mem-alloc (+ 1 (utf8-length s)))
+                 :: cstring))
+        (l (.length s)))
+    (def loop (i d) (:: int cstring -> cstring)
+      (if (>= i l)
+        (begin
+          (set-bytes d 0)
+          buf)
+        (let ((cnt (encode-utf8 (elt s i) d)))
+          (loop (+ i 1)
+                (offset d cnt)))))
+    (loop 0 buf)))
+
+(def string->bytearray (s) (:: string -> #[byte])
+  (let* ((buf (string->cstring s))
+         (len (c-strlen buf)))
+    #(1 len len buf)))
+

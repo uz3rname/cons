@@ -1,0 +1,46 @@
+(use core)
+
+(def print-head (file line-cnt) (:: string int -> void)
+  (def loop (f i) (:: stream int -> void)
+    (if (<= i 0)
+      ()
+      (let ((s (read-line f)))
+        (if (eof? f)
+          ()
+          (begin
+            (write-line s)
+            (loop f (- i 1)))))))
+  (let ((s (if (= file "-")
+             std-input
+             (open file))))
+    (loop s line-cnt)
+    (unless (= file "-")
+      (close s))))
+
+(let loop ((line-cnt 10)
+           (files [])
+           (xs (tail sys-argv)))
+  (:: int [string] [string] -> void)
+  (if (null? xs)
+    (if (null? files)
+      (print-head "-" line-cnt)
+      (foldl (fn (n file)
+               (unless (null? (tail files))
+                 (when (> n 0)
+                   (write-line ""))
+                 (write-line (++ "==> " file " <==")))
+               (print-head file line-cnt)
+               (+ n 1))
+             0
+             (reverse files)))   
+    (case (head xs)
+      (("-n")
+       (if (null? (tail xs))
+         (write-line "Option requires argument")
+         (loop (string->int (head (tail xs)))
+               files
+               (tail (tail xs)))))
+      (else (loop line-cnt
+                  (cons (head xs) files)
+                  (tail xs))))))
+

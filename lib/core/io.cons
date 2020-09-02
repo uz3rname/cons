@@ -1,0 +1,416 @@
+(extern sys-open
+  ((:: cstring int ... -> int) "open"))
+(extern sys-close
+  ((:: int -> void) "close"))
+(extern sys-lseek
+  ((:: int int int -> int) "lseek"))
+
+(def o-rdonly   #00)
+(def o-wronly   #01)
+(def o-rdwr     #02)
+(def o-creat    #0100)
+(def o-trunc    #01000)
+
+(enum seek-whence
+  seek-set
+  seek-cur
+  seek-end)
+
+(enum stream-direction
+  direction-input
+  direction-output)
+
+(type stream
+  #((.opened bool)
+    (.file-descriptor int) 
+    (.direction stream-direction)
+    (.file-name string)
+    (.eof bool)
+    (.char char)
+    (.has-char bool)
+    (.buf cstring)
+    (.buf-len int)
+    (.buf-size int)))
+
+(def eof? (x) (:: stream -> bool)
+  (.eof x))
+
+(def stream-buf-size (* 1024 1024))
+
+(def make-file-stream (fd dir file-name) (:: int
+                                             stream-direction
+                                             string
+                                             -> stream)
+  (let ((s (case dir
+             ((direction-output)
+              stream-buf-size)
+             ((direction-input)
+              4))))
+    #(#t fd dir file-name #f (-> 0 :: char) #f
+      (-> (mem-alloc s) :: cstring)
+      0 s)))
+
+(def repr (x) (:: stream -> string)
+  (++ (case (.direction x)
+        ((direction-input) "Input stream")
+        ((direction-output) "Output stream"))
+      (++ " (" (.file-name x) ")")
+      (if (.opened x)
+        ""
+        ", closed")))
+
+(def std-input
+  (make-file-stream 0 direction-input "<stdin>"))
+(def std-output
+  (make-file-stream 1 direction-output "<stdout>"))
+(def std-error
+  (make-file-stream 2 direction-output "<stderr>"))
+
+(def open (file-name dir) (:: string stream-direction -> stream)
+  (let ((fd (sys-open (string->cstring file-name)
+                      (case dir
+                        ((direction-output) #01101)
+                        ((direction-input) 0))
+                      #0644)))
+    (if (< fd 0)
+      (die "Error opening file ")
+      (make-file-stream fd dir file-name))))
+
+(def open (file-name) (:: string -> stream)
+  (open file-name direction-input))
+
+(def close (s) (:: stream -> void)
+  (if (not (.opened s))
+    (die "Stream already closed")
+    (begin
+      (flush s)
+      (set! (.opened s) #f)
+      (sys-close (.file-descriptor s)))))
+
+(def stream-seek (s pos whence) (:: stream int seek-whence -> int)
+  (sys-lseek (.file-descriptor s)
+             pos
+             (.value whence)))
+
+(def stream-pos (s) (:: stream -> int)
+  (stream-seek s 0 seek-cur))
+
+(def stream-size (s) (:: stream -> int)
+  (let* ((pos (stream-pos s))
+         (end (stream-seek s 0 seek-end)))
+    (stream-seek s pos seek-set)
+    end))
+
+(extern c-write
+  ((:: int cstring int -> int) "write"))
+(extern c-read
+  ((:: int cstring int -> int) "read"))
+
+(def flush (s) (:: stream -> void)
+  (when (> (.buf-len s) 0)
+        (c-write (.file-descriptor s)
+                 (.buf s)
+                 (.buf-len s))
+        (set! (.buf-len s) 0)))
+
+(def flush () (:: -> void)
+  (flush std-output))
+
+(def tmp-buf (mem-alloc 16))
+
+(def write-char (ch s) (:: char stream -> void)
+  (let ((len (utf8-length ch)))
+    (when (> (+ (.buf-len s) len)
+             (.buf-size s))
+      (flush s))
+    (encode-utf8 ch
+                 (offset (.buf s)
+                         (.buf-len s)))
+    (inc! (.buf-len s) len)
+    (when (= ch #\nl)
+      (flush s)))
+;  (let ((l (utf8-length ch)))
+;    (cond ((/= (.direction s)
+;               direction-output)
+;           (die "Stream is not output stream"))
+;          ((not (.opened s))
+;           (die "Stream is closed"))
+;          ((> l (- (.buf-size s)
+;                   (.buf-len s)))
+;           (unless (= (.buf-len s) 0)
+;             (flush s))
+;           (let ((cnt (encode-utf8 ch (.buf s))))
+;             (set! (.buf-len s) cnt)
+;             (flush s)))
+;          (else
+;            (let ((cnt (encode-utf8 ch
+;                                    (offset (.buf s)
+;                                            (.buf-len s)))))
+;              (inc! (.buf-len s) cnt)
+;              (when (= ch '\n')
+;                (flush s))))))
+  
+  )
+
+(def write-char (ch) (:: char -> void)
+  (write-char ch std-output))
+
+(def write-byte (b s) (:: byte stream -> void)
+  (when (>= (.buf-len s)
+            (.buf-size s))
+    (flush s))
+  (mov! b (offset (.buf s)
+                  (.buf-len s)))
+  (inc! (.buf-len s))
+  (when (= b 10)
+    (flush s))
+;  (cond ((/= (.direction s)
+;             direction-output)
+;         (die "Stream is not output stream"))
+;        ((not (.opened s))
+;         (die "Stream is closed"))
+;        ((>= (.buf-len s)
+;             (.buf-size s))
+;         (flush s)
+;         (mov! b (.buf s))
+;         (inc! (.buf-len s))
+;         (flush s))
+;        (else
+;          (mov! b (offset (.buf s)
+;                          (.buf-len s)))
+;          (inc! (.buf-len s))
+;          (when (= b 10)
+;                (flush s))))
+  
+  )
+
+(def write-byte (b) (:: byte -> void)
+  (write-byte b std-output))
+
+(def read-char (s) (:: stream -> char)
+  (let ((ch (.char s)))
+    (cond ((.has-char s)
+           (set! (.has-char s) #f)
+           ch)
+          (else
+            (let* ((b (read-byte s))
+                   (cnt (utf8-byte-cnt b)))
+              (mov! b (.buf s))
+              (unless (<= cnt 1)
+                (c-read (.file-descriptor s)
+                        (offset (.buf s) 1)
+                        (- cnt 1)))
+              (decode-utf8 (.buf s)))))))
+
+(def read-char () (:: -> char)
+  (read-char std-input))
+
+(def read-string (f) (:: stream -> string)
+  (let loop ((s []))
+    (:: [char] -> string)
+    (let ((ch (read-char f)))
+      (if (eof? f)
+        (list->array (reverse s))
+        (loop (cons ch s))))))
+
+(def unread-char (ch s) (:: char stream -> void)
+  (set! (.char s) ch)
+  (set! (.has-char s) #t))
+
+(def peek-char (s) (:: stream -> char)
+  (let ((ch (read-char s)))
+    (unread-char ch s)
+    ch))
+
+(def read-byte (s) (:: stream -> byte)
+  (cond ((/= (.direction s)
+             direction-input)
+         (die "Stream is not input stream"))
+        ((not (.opened s))
+         (die "Stream is closed"))
+        (else
+          (if (<= (c-read (.file-descriptor s)
+                          (.buf s)
+                          1)
+                  0)
+            (begin
+              (set! (.eof s) #t)
+              0)
+            (deref (.buf s))))))
+
+(def read-byte () (:: -> byte)
+  (read-byte std-input))
+
+(def read-bytes (s c d) (:: stream int #[byte] -> int)
+  (if (> c (.buf-size d))
+    (die "Invalid array size")
+    (let ((cnt (c-read (.file-descriptor s)
+                       (.buf d)
+                       c)))
+      (set! (.length d) cnt)
+      cnt)))
+
+(def read-bytes (s c) (:: stream int -> #[byte])
+  (let ((a (make-array (-> 0 :: byte) c)))
+    (read-bytes s c a)
+    a))
+
+(def write-string (s f) (:: string stream -> void)
+  (for-each (fn (x) (write-char x f))
+            s))
+
+(def write-string (s) (:: string -> void)
+  (for-each write-char s))
+
+(def newline (s) (:: stream -> void)
+  (write-char #\nl s))
+
+(def newline () (:: -> void)
+  (write-char #\nl std-output))
+
+(def write-line (s f) (:: string stream -> void)
+  (write-string s f)
+  (write-char #\nl f))
+
+(def write-line (s) (:: string -> void)
+  (write-line s std-output))
+
+(def write-bytes (s f) (:: #[byte] stream -> void)
+  (flush f)
+  (c-write (.file-descriptor f)
+           (.buf s)
+           (.length s)))
+
+(def write-bytes (s) (:: #[byte] -> void)
+  (write-bytes s std-output))
+
+(def print (x f) (:: a stream -> void)
+  (write-line (repr x) f))
+
+(def print (x) (:: a -> void)
+  (print x std-output))
+
+(def read-line (f) (:: stream -> string)
+  (let loop ((lst [])
+             (cnt 0))
+    (:: [char] int -> string)
+    (let ((ch (read-char f)))
+      (if (or (eof? f)
+              (= ch #\nl))
+        (let ((a (array-copy " " cnt)))
+          (foldr (fn (c i)
+                   (mov! c (offset (.buf a) i))
+                   (+ i 1))
+                 0
+                 lst)
+          (set! (.length a) cnt)
+          a)
+        (loop (cons ch lst)
+              (+ cnt 1))))))
+
+(def read-line () (:: -> string)
+  (read-line std-input))
+
+(def read-while (p s) (:: (char -> bool) stream -> string)
+  (def loop (res) (:: string -> string)
+    (let ((ch (read-char s)))
+      (cond ((eof? s)
+             res)
+            ((p ch)
+             (loop (++ res #[ch])))
+            (else
+              (unread-char ch s)
+              res))))
+  (loop ""))
+
+(def read-lines (s) (:: stream -> [string])
+  (def loop (res) (:: [string] -> [string])
+    (let ((line (read-line s)))
+      (if (eof? s)
+        (reverse res)
+        (loop (cons line res)))))
+  (loop []))
+
+(def read-lines () (:: -> [string])
+  (read-lines std-input))
+
+(def read-prompt (prompt) (:: string -> string)
+  (write-string prompt)
+  (write-string ": ")
+  (flush std-output)
+  (read-line))
+
+(extern c-pipe
+  ((:: *int32 -> int) "pipe"))
+
+(def sys-pipe () (:: -> stream)
+  (let ((buf (-> (mem-alloc 8) :: *int32)))
+    (if (= (c-pipe buf) 0)
+      (begin
+        (values (make-file-stream (-> (deref buf) :: int)
+                                  direction-input
+                                  "")
+                (make-file-stream (-> (deref (offset buf 1)) :: int)
+                                  direction-output
+                                  "")))
+      (die "Couldn't create pipe!"))))
+
+(def string->stream (s) (:: string -> stream)
+  (call-with-values
+    sys-pipe
+    (fn (in out) (:: stream stream -> stream)
+      (let1 buf (string->cstring s)
+        (c-write (.file-descriptor out)
+                 buf
+                 (c-strlen buf))
+        (close out)
+        in))))
+
+;(macro with-overriden-stream
+;  (((out $value) $body ...)
+;   (fluid-let std-output $value
+;     (let ((r (begin $body ...)))
+;       (when (.opened std-output)
+;         (close std-output))
+;       r)))
+;  (((in $value) $body ...)
+;   (fluid-let std-input $value
+;     (let ((r (begin $body ...)))
+;       (when (.opened std-input)
+;         (close std-input))
+;       r))))
+;
+(def call-with-input-from-string (s p) (:: string (stream -> a) -> a)
+  (let ((in (string->stream s)))
+    (let ((r (p in)))
+      (close in)
+      r)))
+
+(def call-with-output-to-string (proc) (:: (stream -> void) -> string)
+  (call-with-values
+    sys-pipe
+    (fn (in out) (:: stream stream -> string)
+      (proc out)
+      (close out)
+      (let1 s (read-string in)
+        (close in)
+        s))))
+
+;(def call-with-input-from-file (f proc) (:: string (-> a) -> a)
+;  (with-overriden-stream (in (open f))
+;    (proc)))
+;  
+;(def call-with-output-to-file (f proc) (:: string (-> void) -> void)
+;  (with-overriden-stream (out (open f direction-output))
+;    (proc)))
+  
+(extern c-snprintf ((:: *void int cstring ... -> void) "snprintf"))
+
+(def format% (out s) (:: stream string -> void)
+  (write-string s out))
+
+(def format% (out s) (:: bool string -> string)
+  (when out
+    (write-string s))
+  s)
+

@@ -1,0 +1,29 @@
+(use json)
+
+(def key-arg? (x) (:: string -> bool)
+  (and (> (length x) 1)
+       (= (elt x 0) #\-)))
+
+(let loop ((xs (tail sys-argv))
+           (pretty #f)
+           (files []))
+  (:: [string] bool [string] -> void)
+  (if (null? xs)
+    (for-each (fn (x)
+                (let ((o (if (= x "-")
+                           (read-json std-input)
+                           (read-json-file x)))
+                      (p pretty))
+                  (typecase o
+                    (.just (dump-json o p)
+                           (newline))
+                    (.nothing (newline)))))
+              (if (null? files)
+                ["-"]
+                (reverse files)))
+    (let+ (h . t) xs
+      (case h
+        (("-p")
+         (loop t #t files))
+        (else (loop t pretty (cons h files)))))))
+

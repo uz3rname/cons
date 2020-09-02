@@ -1,0 +1,12 @@
+;result = 21
+(include "inc/call_cc.cons")
+
+(+ (call/cc
+     (fn (k) (:: (int -> throw) -> int)
+       1))
+   (call/cc
+     (fn (k) (:: (int -> throw) -> int)
+       (k 20)
+       (k 30)
+       10)))
+

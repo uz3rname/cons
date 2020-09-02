@@ -1,0 +1,9 @@
+(#$ def mem-manager @MEM_MANAGER@)
+(extern get-errno-location
+  ((:: -> *int) "@errno_func_name@"))
+(def real-formatter $"%.@dbl_dig@g")
+
+(#$ if-eq mem-manager boehm-gc)
+(declare (link-with "@lib_gc@"))
+(#$ end-if)
+

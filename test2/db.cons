@@ -1,0 +1,107 @@
+(use core)
+
+(def dump-db (args lst)
+  (with-file (f (head args)
+                direction-output)
+    (for-each (fn (x)
+                (write-line (++ (. x 0)
+                                ":"
+                                (. x 1))
+                            f))
+              (-> lst :: [#(string string)]))
+    lst))
+
+(def load-db (args lst)
+  (with-file (f (head args)
+                direction-input)
+    (foldl (fn (xs x) (:: (: alist string string)
+                          string
+                          -> (: alist string string))
+             (let ((i (search ":" x)))
+               (if (nothing? i)
+                 xs
+                 (assoc-set (slice x 0 (from-just i))
+                            (slice x (+ (from-just i) 1))
+                            xs))))
+           (-> [] :: (: alist string string))
+           (read-lines f))))
+
+(def show-help (args lst)
+  (for-each write-line
+            ["s key value"
+             "g key"
+             "v"
+             "d key"
+             "q"
+             "w filename"
+             "l filename"])
+  lst)
+
+(def set-db (args lst)
+  (let+ (k v) args
+    (assoc-set k v lst)))
+
+(def get-db (args lst)
+  (let ((x (assoc (head args)
+                  lst)))
+    (if (nothing? x)
+      (write-line "nothing")
+      (print (from-just x))))
+  lst)
+
+(def del-db (args lst)
+  (assoc-del (head args) lst))
+
+(def show-db (args lst)
+  (write-line (++ (rjust "Key" 8 #\space)
+                  " | Value"))
+  (write-line (repeat "-" 16))
+  (for-each (fn (x)
+              (write-line
+                (++ (rjust (. x 0) 8 #\space)
+                    " | "
+                    (repr (. x 1)))))
+            (-> lst :: [#(string string)]))
+  (print lst)
+  lst)
+
+(def loop (lst) (:: (: alist string string) -> void)
+  (let* ((line (filter (! empty?)
+                       (split (trim (read-prompt "cmd (? for help)"))
+                              " ")))
+         (cmd (if (null? line)
+                ""
+                (head line)))
+         (args (if (null? line)
+                 []
+                 (tail line))))
+    (def accept-args (len f) (:: int
+                                 ([string] (: alist string string) -> a)
+                                 -> void)
+      (if (= len (length args))
+        (loop (f args lst))
+        (begin
+          (write-line (++ "invalid argument count, expected "
+                          (repr len)))
+          (loop lst))))
+    (case cmd
+      (("?")
+       (accept-args 0 show-help))
+      (("s")
+       (accept-args 2 set-db))
+      (("g")
+       (accept-args 1 get-db))
+      (("d")
+       (accept-args 1 del-db))
+      (("v")
+       (accept-args 0 show-db))
+      (("w")
+       (accept-args 1 dump-db))
+      (("l")
+       (accept-args 1 load-db))
+      (("q")
+       (write-line "bye"))
+      (else (write-line "unknown action")
+                  (loop lst)))))
+(loop [])
+

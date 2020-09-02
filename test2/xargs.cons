@@ -1,0 +1,19 @@
+(use core sys)
+
+(def read-args ()
+  (let loop ((res []))
+    (:: [string] -> [string])
+    (let ((line (read-line)))
+      (if (eof? std-input)
+        (reverse res)
+        (loop (cons line res))))))
+
+(let ((args (read-args)))
+  (if (null? (tail sys-argv))
+    (write-line
+      (join " " args))
+    (run-program
+      (elt sys-argv 1)
+      (++ (tail (tail sys-argv))
+          args))))
+

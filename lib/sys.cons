@@ -1,0 +1,125 @@
+(use core)
+(declare (module sys)
+         (export-all))
+
+(extern c-sys-getcwd
+  ((:: cstring int -> cstring) "getcwd"))
+(extern c-sys-chdir
+  ((:: cstring -> int) "chdir"))
+(extern c-sys-execvp
+  ((:: cstring *cstring -> int) "execvp"))
+(extern sys-fork
+  ((:: -> int) "fork"))
+(extern sys-wait
+  ((:: *int -> int) "wait"))
+(extern sys-sleep
+  ((:: int -> void) "sleep"))
+(extern c-sys-access
+  ((:: cstring int -> int) "access"))
+(extern c-mkdir
+  ((:: cstring int -> int) "mkdir"))
+
+(def access-exists  0)
+(def access-exec    1)
+(def access-write   2)
+(def access-read    4)
+
+(def max-path-name-length 256)
+
+(def sys-getcwd () (:: -> string)
+  (let* ((buf (-> (mem-alloc max-path-name-length)
+                  :: cstring))
+         (res (c-sys-getcwd buf max-path-name-length)))
+    (if (= buf res)
+      (cstring->string buf)
+      (die "Error getting current directory"))))
+
+(def sys-chdir (path) (:: string -> bool)
+  (= (c-sys-chdir (string->cstring path))
+     0))
+
+(def sys-execvp (path args) (:: string [string] -> int)
+  (let ((prog (string->cstring path)))
+    (c-sys-execvp prog
+                  (.buf (++ #[prog]
+                            (list->array (map string->cstring args))
+                            #[(-> null-ptr :: cstring)])))))
+
+(def run-program (path args wait) (:: string [string] bool -> int)
+  (let ((pid (sys-fork)))
+    (case pid
+      ((0)
+       (sys-execvp path args))
+      (else
+        (if wait
+          (let ((buf (-> (mem-alloc 8) :: *int)))
+            (sys-wait buf)
+            (deref buf))
+          pid)))))
+
+(def run-program (path args) (:: string [string] -> int)
+  (run-program path args #t))
+
+(def file-exists? (file) (:: string -> bool)
+  (let ((res (c-sys-access (string->cstring file)
+                           access-exists)))
+    (= res 0)))
+
+(def dir-name (s) (:: string -> string)
+  (let ((i (search-back "/" s)))
+    (typecase i
+      (.nothing ".")
+      (.just (slice s 0 i)))))
+
+(def base-name (s) (:: string -> string)
+  (let ((i (search-back "/" s)))
+    (typecase i
+      (.nothing s)
+      (.just (slice s (+ i 1))))))
+
+(def split-path (s) (:: string -> [string])
+  (let ((p (split (trim s) "/")))
+    (if (= (head p) "")
+      p
+      (cons "." p))))
+
+(def normalize-path (s) (:: string -> string)
+  (++ (dir-name s)
+      "/"
+      (base-name s)))
+
+(def strip-suffix (s) (:: string -> string)
+  (let* ((d (search-back "/" s))
+         (i (search-back "." s)))
+    (if (and (just? i)
+             (or (nothing? d)
+                 (> (from-just i)
+                    (from-just d))))
+      (slice s 0 (from-just i))
+      s)))
+
+(extern sys-ctime ((:: *int -> cstring) "ctime"))
+
+(def ctime (t) (:: int -> string)
+  (let ((buf (-> (mem-alloc 8) :: *int)))
+    (mov! t buf)
+    (let ((s (sys-ctime buf)))
+      (cstring->string s))))
+
+(def sys-mkdir (s mode) (:: string int -> bool)
+  (= 0 (c-mkdir (string->cstring s)
+                mode)))
+
+(def sys-mkdir (s) (:: string -> bool)
+  (sys-mkdir s #0755))
+
+(extern c-sys-getenv
+  ((:: cstring -> cstring) "getenv"))
+
+(def sys-getenv (k) (:: string -> (: maybe string))
+  (let ((p (c-sys-getenv
+             (string->cstring k))))
+    (if (eq p null-ptr)
+      nothing
+      (just (cstring->string p)))))
+

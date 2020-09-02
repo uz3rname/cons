@@ -1,0 +1,21 @@
+;result = 10
+(include "inc/memory.cons")
+(include "inc/io.cons")
+
+(def outer (x)
+  (def add (y)
+    (+ x y))
+  (def loop (a b) (:: int int -> int)
+    (def next () (:: -> int)
+      (let ((i (add a)))
+        (printf $"a=%ld, b=%ld, i=%ld, x=%ld\n"
+                a b i x)
+        i))
+    (let ((z (next)))
+      (if (>= z b)
+        z
+        (loop z b))))
+  (loop 0 10))
+
+(outer 1)
+

@@ -1,0 +1,261 @@
+(use core lex)
+(declare (module json))
+
+(declare
+  (export json
+          str
+          repr
+          json-dict
+          json-lexer-state
+          parse-json
+          read-json
+          read-json-file
+          read-json-string
+          json-get
+          dump-json))
+
+(type json
+  (or (.number real)
+      (.string string)
+      (.bool bool)
+      (.null *void)
+      (.array [json])
+      (.dict (: alist string json))))
+
+(def json (x) (-> x :: json))
+
+(def str (x) (:: json -> string)
+  (call-with-output-to-string
+    (fn (out)
+      (dump-json x #f out))))
+
+(def repr (x) (:: json -> string)
+  (str x))
+
+(def json-dict (names values) (:: [string] [json] -> json)
+  (-> (map (fn (k v)
+             #(k v))
+           names
+           values)
+      :: (: alist string json)))
+
+(def json-term-chars [#\[ #\] #\{ #\} #\: #\,])
+(def json-quot-chars [#\"])
+
+(def json-lexer-state (in) (:: stream -> lexer-state)
+  (lexer-state in
+               json-term-chars
+               json-quot-chars
+               #\\))
+
+(def parse-json (st) (:: lexer-state -> (: maybe json))
+  (let ((t (get-token st)))
+    (if (nothing? t)
+      nothing
+      (let ((tok (from-just t)))
+        (typecase tok
+          (.term
+            (next-token st)
+            (case (-> tok :: char)
+              ((#\[)
+               (just
+                 (parse-json-array st)))
+              ((#\{)
+               (just
+                 (parse-json-dict st)))
+              ((#\])
+               (die "Unexpected symbol"))))
+          (.number
+            (next-token st)
+            (just
+              (json
+                (string->real (-> tok :: string)))))
+          (.symbol
+            (next-token st)
+            (just
+              (let ((s (string-downcase
+                         (-> tok :: string))))
+                (case s
+                  (("true")
+                   (json #t))
+                  (("false")
+                   (json #f))
+                  (("null")
+                   (json null-ptr))
+                  (else (die "Unknown json constant"))))))
+          (.quoted
+            (next-token st)
+            (just
+              (json
+                (.string tok)))))))))
+
+(def expect-term (st ch) (:: lexer-state [char] -> char)
+  (let ((n (get-token st)))
+    (if (nothing? n)
+      (die "Unexpected EOF")
+      (let ((nt (from-just n)))
+        (if (or (not (is nt .term))
+                (not (in? (-> (.term nt) :: char) ch)))
+          (die "Unexpected token ")
+          (-> (.term nt) :: char))))))
+
+(def parse-json-array (st) (:: lexer-state -> json)
+  (def loop (r) (:: [json] -> [json])
+    (let ((t (get-token st)))
+      (if (nothing? t)
+        (die "Unexpected EOF")
+        (let ((tok (from-just t)))
+          (if (and (is tok .term)
+                   (= (-> (.term tok) :: char)
+                      #\]))
+            (begin
+              (next-token st)
+              (reverse r))
+            (let ((o (parse-json st)))
+              (if (nothing? o)
+                (die "Unexpected EOF")
+                (begin
+                  (when (= #\, (expect-term st [#\, #\]]))
+                    (next-token st))
+                  (loop (cons (from-just o) r))))))))))
+  (json (loop [])))
+
+(def parse-json-dict (st) (:: lexer-state -> json)
+  (def loop (r) (:: [#(string json)] -> (: alist string json))
+    (let ((t (get-token st)))
+      (if (nothing? t)
+        (die "Unexpected EOF")
+        (let ((tok (from-just t)))
+          (typecase tok
+            (.term
+              (case (-> tok :: char)
+                ((#\})
+                 (next-token st)
+                 (reverse r))
+                (else
+                  (die "Unexpected token "))))
+            (.quoted
+              (let ((s (.string tok)))
+                (next-token st)
+                (expect-term st [#\:])
+                (next-token st)
+                (let ((o (parse-json st)))
+                  (if (nothing? o)
+                    (die "Unexpected EOF")
+                    (begin
+                      (when (= #\, (expect-term st [#\, #\}]))
+                        (next-token st))
+                      (loop (cons #(s (from-just o))
+                                  r)))))))
+            (else (die "Unexpected token ")))))))
+  (json (loop [])))
+
+(def json-get (o path) (:: json [string] -> (: maybe json))
+  (if (null? path)
+    (just o) 
+    (if (or (is o .dict)
+            (is o .array))
+      (let ((c (typecase o
+                 (.dict
+                   (assoc (head path) o))
+                 (.array
+                   (let ((i (string->int
+                              (head path))))
+                     (if (>= i (length o))
+                       nothing
+                       (just (elt o i))))))))
+        (if (nothing? c)
+          nothing
+          (json-get (from-just c)
+                    (tail path))))
+      nothing)))
+
+(def json-get (o path) (:: json string -> (: maybe json))
+  (json-get o
+            (split path "/")))
+
+(def dump-string (s out) (:: string stream -> void)
+  (write-char #\" out)
+  (for-each (fn (ch)
+              (when (in? ch [#\\ #\nl #\" #\return])
+                (write-char #\\ out))
+              (write-char (case ch
+                            ((#\nl) #\n)
+                            ((#\return) #\r)
+                            (else ch))
+                          out))
+            s)
+  (write-char #\" out))
+
+(def dump-pair (o out pretty lvl) (:: #(string json) stream bool int -> void)
+  (dump-string (. o 0) out)
+  (if pretty
+    (write-string ": " out)
+    (write-char #\: out))
+  (dump-json% (. o 1) out pretty lvl))
+
+(declare (notail dump-json%))
+(def dump-json% (o out pretty lvl) (:: json stream bool int -> void)
+  (def pad (lvl) (:: int -> void)
+    (when pretty
+      (write-char #\nl out)
+      (do-times (_ (* lvl 2))
+        (write-char #\space out))))
+  (typecase o
+    (.number
+      (write-string (repr o) out))
+    (.string
+      (dump-string o out))
+    (.bool
+      (write-string (if o "true" "false")
+                    out))
+    (.null
+      (write-string "null" out))
+    (.array
+      (write-char #\[ out)
+      (unless (null? o)
+        (pad (+ lvl 1))
+        (dump-json% (head o) out pretty (+ lvl 1))
+        (for-each (fn (x)
+                    (write-char #\, out)
+                    (pad (+ lvl 1))
+                    (dump-json% x out pretty (+ lvl 1)))
+                  (tail o))
+        (pad lvl))
+      (write-char #\] out))
+    (.dict
+      (write-char #\{ out)
+      (let ((o (-> o :: [#(string json)])))
+        (unless (null? o)
+          (pad (+ lvl 1))
+          (dump-pair (head o) out pretty (+ lvl 1))
+          (for-each (fn (x)
+                      (write-char #\, out)
+                      (pad (+ lvl 1))
+                      (dump-pair x out pretty (+ lvl 1)))
+                    (tail o))
+          (pad lvl)))
+      (write-char #\} out))))
+
+(def dump-json (o pretty out) (:: json bool stream -> void)
+  (dump-json% o out pretty 0))
+
+(def dump-json (o pretty) (:: json bool -> void)
+  (dump-json% o std-output pretty 0))
+
+(def read-json (in) (:: stream -> (: maybe json))
+  (parse-json
+    (json-lexer-state in)))
+
+(def read-json () (:: -> (: maybe json))
+  (read-json std-input))
+
+(def read-json-file (f) (:: string -> (: maybe json))
+  (with-file (in f)
+    (read-json in)))
+
+(def read-json-string (s) (:: string -> (: maybe json))
+  (call-with-input-from-string
+    s
+    read-json))
+

@@ -1,0 +1,22 @@
+(use math iter)
+
+(def repr (x) (:: #(real int string) -> string)
+  (++ (repr (. x 0))
+      "\t"
+      (repr (. x 1))
+      "\t"
+      (. x 2)))
+
+(>-> (count-from 0)
+  (drop-while ($ < _ 200))
+  (take-while ($ < _ 100000))
+  (filter ($ = (mod _ 3) 0))
+  reverse
+  (map ($ sqrt _))
+  (map ($'
+         #(_
+            (trunc (round (* _ _)))
+            (repr (pow _ 3)))))
+  collect
+  (for-each print))
+

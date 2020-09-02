@@ -1,0 +1,16 @@
+(extern values
+  ((:: a -> a) "_values")
+  ((:: a b -> a) "_values")
+  ((:: a b c -> a) "_values")
+  ((:: a b c d -> a) "_values")
+  ((:: a b c d e -> a) "_values")
+  ((:: a b c d e f -> a) "_values"))
+
+(extern call-with-values
+  ((:: (-> a) (a -> x) -> x) "_call_with_values")
+  ((:: (-> a) (a b -> x) -> x) "_call_with_values")
+  ((:: (-> a) (a b c -> x) -> x) "_call_with_values")
+  ((:: (-> a) (a b c d -> x) -> x) "_call_with_values")
+  ((:: (-> a) (a b c d e -> x) -> x) "_call_with_values")
+  ((:: (-> a) (a b c d e f -> x) -> x) "_call_with_values"))
+

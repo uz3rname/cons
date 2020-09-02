@@ -1,0 +1,12 @@
+;result = 62
+(include "inc/memory.cons")
+
+(let ((s #(1 10.15 #\0)))
+  (set! (. s 2) #\1)
+  (set! (. s 0) 10)
+  (set! (. s 1) 3.14)
+  (-> (+ (. s 0)
+         (. s 1)
+         (-> (. s 2) :: int))
+      :: int))
+

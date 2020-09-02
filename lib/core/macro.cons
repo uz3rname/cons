@@ -1,0 +1,273 @@
+(macro source-info
+  (($str)
+   ($fmt ($concat-str $str
+                      " (file: {}, line: {}, col: {})")
+         ($source-file)
+         ($source-line)
+         ($source-col))))
+
+(macro let
+  (((($name $value) ...) $body ...)
+   ((fn ($name ...)
+      $body ...)
+    $value ...))
+  (($f (($name $value) ...) $body ...)
+   (begin
+     (def $f ($name ...)
+       $body ...)
+     ($f $value ...))))
+
+(macro let*
+  (((($name $val)) $body ...)
+   (let (($name $val))
+     $body ...))
+  (((($name $val) $rest ...) $body ...)
+   (let (($name $val))
+     (let* ($rest ...) $body ...))))
+
+(macro let1
+  (($var $expr $body ...)
+   (let (($var $expr))
+     $body ...)))
+
+(macro cond
+  (((else $x ...))
+   (begin $x ...))
+  ((($c $x ...))
+   (if $c
+     (begin $x ...)
+     (die (source-info
+            "Unhandled cond clause"))))
+  ((($c $x ...) $rest ...)
+   (if $c
+     (begin $x ...)
+     (cond $rest ...))))
+
+(macro when
+  (($x $body ...)
+   (if $x
+     (begin $body ... ())
+     ())))
+
+(macro unless
+  (($x $body ...)
+   (if $x
+     ()
+     (begin $body ... ()))))
+
+(macro case
+  (($k (else $body ...))
+   (begin $body ...))
+  (($k (($x) $body ...))
+   (if (= $k $x)
+     (begin $body ...)
+     (die (source-info "Unhandled case "))))
+  (($k (($x) $body ...) $rest ...)
+   (if (= $k $x)
+     (begin $body ...)
+     (case $k $rest ...)))
+  (($k (($x $xs ...) $body ...) $rest ...)
+   (if (= $k $x)
+     (begin $body ...)
+     (case $k (($xs ...) $body ...) $rest ...))))
+
+(macro enum%
+  (($type-name _ ($keyword $value))
+   (enum% $type-name $value $keyword))
+  (($type-name $value $keyword)
+   (def $keyword
+     ($type-name ($symbol-name $keyword) $value)))
+  (($type-name _ ($keyword $value) $keywords ...)
+   (begin
+     (enum% $type-name $value $keyword)
+     (enum% $type-name
+            (+ $value 1)
+            $keywords ...)))
+  (($type-name $value $keyword $keywords ...)
+   (begin
+     (enum% $type-name $value $keyword)
+     (enum% $type-name
+            (+ $value 1)
+            $keywords ...))))
+
+(macro enum
+  (($type-name $keywords ...)
+   (begin
+     (type $type-name #((.name string) (.value int)))
+     (def $type-name (x i) (:: string int -> $type-name)
+       #(x i))
+     (def repr (x) (:: $type-name -> string)
+       (.name x))
+     (enum% $type-name 0 $keywords ...))))
+
+(macro bind-list
+  ((($x) $lst $body)
+   (let (($x (head $lst)))
+     $body))
+  ((($x . $xs) $lst $body)
+   (let (($x (head $lst))
+         ($xs (tail $lst)))
+     $body)) 
+  ((($x $xs ...) $lst $body)
+   (let (($x (head $lst)))
+     (bind-list ($xs ...) (tail $lst) $body))))
+
+(macro let+
+  ((($pat ...) $lst $body ...)
+   (let (($x $lst))
+     (bind-list ($pat ...) $x (begin $body ...)))))
+
+(macro bind-struct
+  ((($x) $s $body)
+   (let (($x (. $s $x)))
+     $body))
+  ((($x $xs ...) $s $body)
+   (let (($x (. $s $x)))
+     (bind-struct ($xs ...) $s $body))))
+
+(macro let%
+  ((($pat ...) $s $body ...)
+   (let (($x $s))
+     (bind-struct ($pat ...) $x (begin $body ...)))))
+
+(macro with-file
+  ((($sym $args ...) $body ...)
+   (let* (($sym (open $args ...))
+          ($result (begin $body ...)))
+     (close $sym)
+     $result)))
+
+(macro !
+  (($f)
+   (fn ($x) (:: a -> bool)
+     (not ($f $x)))))
+
+(macro conj
+  (($f $g)
+   (fn ($x) (:: a -> bool)
+     (and ($f $x)
+          ($g $x))))
+  (($f $fs ...)
+   (conj $f (conj $fs ...))))
+
+(macro disj
+  (($f $g)
+   (fn ($x) (:: a -> bool)
+     (or ($f $x)
+         ($g $x))))
+  (($f $fs ...)
+   (disj $f (conj $fs ...))))
+
+(macro inc!
+  (($loc $i)
+   (set! $loc (+ $loc $i)))
+  (($loc)
+   (inc! $loc 1)))
+
+(macro dec!
+  (($loc $i)
+   (set! $loc (- $loc $i)))
+  (($loc)
+   (dec! $loc 1)))
+
+(macro push-back!
+  (($loc $x)
+   (set! (.tail (last-pair $loc))
+         (cons $x []))))
+
+(macro push!
+  (($x $loc)
+   (set! $loc (cons $x $loc))))
+
+(macro concat
+  (($x)
+   (string $x))
+  (($x $xs ...)
+   (++ (string $x)
+       (concat $xs ...))))
+
+(macro typecase
+  (($x (else $body ...))
+   (begin $body ...))
+  (($x ($type $body ...))
+   (if (is $x $type)
+     (let (($x ($type $x)))
+       $body ...)
+     (die (source-info "Unhandled typecase"))))
+  (($x ($type $body ...) $rest ...)
+   (if (is $x $type)
+     (let (($x ($type $x)))
+       $body ...)
+     (typecase $x $rest ...))))
+
+(macro fmt-str
+  (($f $xs ...)
+   (let* ((s (string->cstring $f))
+          (b-size (min 16 (* 2 (c-strlen s))))
+          (buf (mem-alloc b-size)))
+     (c-snprintf buf b-size s $xs ...)
+     (cstring->string buf))))
+
+(macro fmt
+  (($out $f $xs ...)
+   (format% $out (fmt-str $f $xs ...))))
+
+(macro do-times
+  ((($sym $e) $body ...)
+   (do-times ($sym 0 $e 1) $body ...))
+  ((($sym $s $e) $body ...)
+   (do-times ($sym $s $e 1) $body ...))
+  ((($sym $s $e $d) $body ...)
+   (let loop (($sym $s))
+     (unless (>= $sym $e)
+       (begin $body ...)
+       (loop (+ $sym $d))))))
+
+(macro fluid-let
+  (($name $value $body ...)
+   (let ((($makesym "fluid" $name) $name))
+     (set! $name $value)
+     (let (($r (begin $body ...)))
+       (set! $name ($makesym "fluid" $name))
+       $r))))
+
+(macro >->
+  (($f ($g ...))
+   ($g ... $f))
+  (($f $g)
+   ($g $f))
+  (($f ($g ...) $gs ...)
+   (>-> ($g ... $f)
+     $gs ...))
+  (($f $g $gs ...)
+   (>-> ($g $f)
+     $gs ...)))
+
+(macro $
+  ((_1 $f ...)
+   (fn (_1)
+     ($f ...)))
+  ((_2 $f ...)
+   (fn (_1 _2)
+     ($f ...)))
+  ((_3 $f ...)
+   (fn (_1 _2 _3)
+     ($f ...)))
+  ((_4 $f ...)
+   (fn (_1 _2 _3 _4)
+     ($f ...)))
+  (($f ...)
+   (fn (_)
+     ($f ...))))
+
+(macro $'
+  (($f ...)
+   (fn (_)
+     $f ...)))
+
+(macro let-values
+  ((($args ...) $expr $body ...)
+   (call-with-values
+     (fn () $expr)
+     (fn ($args ...)
+       $body ...))))

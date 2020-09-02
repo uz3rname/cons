@@ -1,0 +1,44 @@
+(use core)
+
+(def cat (file-name lines ends) (:: string bool bool -> void)
+  (let* ((stdin (= file-name "-"))
+         (f (if stdin
+              std-input
+              (open file-name))))
+    (let loop ((line lines)
+               (no 1))
+      (let ((b (read-byte f)))
+        (if (eof? f)
+          (if stdin
+            (flush std-output)
+            (close f))
+          (let ((new (= b #xA)))
+            (when (and lines line)
+              (write-string (ljust (repr no) 6))
+              (write-char #\tab))
+            (when (and ends new)
+              (write-char #\$))
+            (write-byte b std-output)
+            (loop new
+                  (if new (+ no 1) no))))))))
+
+(let loop ((lines #f)
+           (ends #f)
+           (files [])
+           (xs (tail sys-argv)))
+  (:: bool bool [string] [string] -> void)
+  (if (null? xs)
+    (for-each (fn (x) (cat x lines ends))
+              (if (null? files)
+                ["-"]
+                (reverse files)))
+    (case (head xs)
+      (("-n")
+       (loop #t ends files (tail xs)))
+      (("-E")
+       (loop lines #t files (tail xs)))
+      (else (loop lines
+                  ends
+                  (cons (head xs) files)
+                  (tail xs))))))
+

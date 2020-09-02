@@ -1,0 +1,10 @@
+;result = 32
+(include "inc/memory.cons")
+
+((fn (f x y) (:: (int -> int) int int -> int)
+   (* (f x) y))
+ (fn (x) (:: int -> int)
+   (* x x))
+ 4
+ 2)
+

@@ -1,0 +1,54 @@
+;output = 0123456789100300600900
+(include "inc/call_cc.cons")
+(include "inc/io.cons")
+(include "inc/list.cons")
+
+(def cont
+  (-> [] :: [(bool -> throw)]))
+(def ret
+  (-> [] :: [(int -> throw)]))
+
+(def counter (x) (:: int -> (-> int))
+  (fn () (:: -> int)
+    (call/cc
+      (fn (k) (:: (int -> throw) -> int)
+        (set! ret [k])
+        (if (null? cont)
+          (let loop ((i x)) (:: int -> int)
+            (call/cc
+              (fn (k) (:: (bool -> throw) -> bool)
+                (set! cont [k])
+                ((head ret) i)))
+            (loop (+ i 1)))
+          ((head cont) #t))))))
+
+(def list-iter (x) (:: [int] -> (-> int))
+  (fn () (:: -> int)
+    (call/cc
+      (fn (k) (:: (int -> throw) -> int)
+        (set! ret [k])
+        (if (null? cont)
+          (let loopx ((xs x)) (:: [int] -> int)
+            (call/cc
+              (fn (k) (:: (bool -> throw) -> bool)
+                (set! cont [k])
+                ((head ret) (head xs))))
+            (loopx (tail xs)))
+          ((head cont) #t))))))
+
+(let ((f (counter 0)))
+  (let loop ((x (f)))
+    (unless (>= x 10)
+      (display x)
+      (loop (f)))))
+
+(set! cont
+  (-> [] :: [(bool -> throw)]))
+(set! ret
+  (-> [] :: [(int -> throw)]))
+
+(let ((f (list-iter [100 300 600 900])))
+  (display (f))
+  (display (f))
+  (display (f))
+  (display (f)))

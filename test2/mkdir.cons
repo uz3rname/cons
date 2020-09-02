@@ -1,0 +1,58 @@
+(use sys)
+
+(def mkdir (dir parents verbose) (:: string bool bool -> bool)
+  (def err (name) (:: string -> bool)
+    (write-line (++ "cannot create directory '"
+                    name
+                    "'"))
+    #f)
+  (def mkdir% (name) (:: string -> bool)
+    (cond ((sys-mkdir name)
+           (when verbose
+             (write-line (++ "mkdir: created directory '"
+                             name
+                             "'")))
+           #t)
+          (else (err name))))
+  (let ((path (split-path dir)))
+    (let loop ((pr (head path))
+               (xs (tail path)))
+      (:: string [string] -> bool)
+      (or (null? xs)
+          (let ((name (++ pr "/" (head xs))))
+            (if (null? (tail xs))
+              (or (and parents
+                       (file-exists? name))
+                  (mkdir% name))
+              (if parents
+                (and (or (file-exists? name)
+                         (mkdir% name))
+                     (loop name (tail xs)))
+                (if (file-exists? name)
+                  (loop name (tail xs))
+                  (err dir)))))))))
+
+(def show-help () (:: -> void)
+  (write-line "Usage: mkdir [-p] [-v] <dir> ..."))
+
+(let loop ((parents #f)
+           (verbose #f)
+           (dirs [])
+           (xs (tail sys-argv)))
+  (:: bool bool [string] [string] -> void)
+  (if (null? xs)
+    (for-each (fn (x)
+                (mkdir x parents verbose))
+              dirs)
+    (case (head xs)
+      (("-h")
+       (show-help))
+      (("-p")
+       (loop #t verbose dirs (tail xs)))
+      (("-v")
+       (loop parents #t dirs (tail xs)))
+      (else (loop parents
+                  verbose
+                  (cons (head xs) dirs)
+                  (tail xs))))))
+

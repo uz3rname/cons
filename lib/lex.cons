@@ -1,0 +1,153 @@
+(use core)
+(declare (module lex))
+
+(declare
+  (export token-term
+          token-symbol
+          token-number
+          token-quoted
+          token
+          repr
+          lexer-state
+          read-token
+          get-token
+          next-token
+          tokenize))
+
+(type token-term char)
+(type token-symbol string)
+(type token-number string)
+(type token-quoted
+  #((.char char)
+    (.string string)))
+
+(type token
+  (or (.term token-term)
+      (.symbol token-symbol)
+      (.number token-number)
+      (.quoted token-quoted)))
+
+(def repr (x) (:: token -> string)
+  (typecase x
+    (.term #[(-> x :: char)])
+    (.symbol (-> x :: string))
+    (.number (-> x :: string))
+    (.quoted (++ #[(.char x)]
+                 (.string x)
+                 #[(.char x)]))))
+
+(type lexer-state
+  #((.in stream)
+    (.line int)
+    (.col int)
+    (.term-chars [char])
+    (.quot-chars [char])
+    (.escape-char char)
+    (.token (: maybe token))))
+
+(def lexer-state (s t q e) (:: stream [char] [char] char -> lexer-state)
+  #(s 0 0 t q e (-> nothing :: (: maybe token))))
+
+(macro make-token
+  (($x $type)
+   (-> (-> $x :: $type) :: token)))
+
+(def read-number (in) (:: stream -> string)
+  (def loop (r dot) (:: string bool -> string)
+    (def next (dot) (:: bool -> string)
+      (loop (++ r #[(read-char in)])
+            dot))
+    (let ((ch (peek-char in)))
+      (cond
+        ((eof? in) r)
+        ((in? ch [#\- #\+])
+         (if (= (length r) 0)
+           (next #f)
+           r))
+        ((= ch #\.)
+         (if dot
+           r
+           (next #t)))
+        ((char-digit? ch)
+         (next dot))
+        (else r))))
+  (loop "" #f))
+
+(def escaped-char (ch) (:: char -> char)
+  (case ch
+    ((#\n) #\nl)
+    ((#\t) #\tab)
+    ((#\r) #\return)
+    ((#\0) (-> 0 :: char))
+    (else ch)))
+
+(def read-quoted (in term esc) (:: stream char char -> string)
+  (def loop (r) (:: string -> string)
+    (let ((ch (read-char in)))
+      (if (eof? in)
+        (die "Unexpected EOF")
+        (case ch
+          ((term) r)
+          ((esc)
+           (loop (++ r #[(escaped-char
+                           (read-char in))])))
+          (else
+            (loop (++ r #[ch])))))))
+  (loop ""))
+
+(def char-decimal? (x) (:: char -> bool)
+  (or (char-digit? x)
+      (in? x [#\+ #\- #\.])))
+
+(def read-token (st) (:: lexer-state -> (: maybe token))
+  (let* ((in (.in st))
+         (ch (peek-char in)))
+    (if (eof? in)
+      nothing
+      (cond
+        ((char-space? ch)
+         (read-char in)
+         (read-token st))
+        ((in? ch (.term-chars st))
+         (read-char in)
+         (just (make-token ch token-term)))
+        ((in? ch (.quot-chars st))
+         (read-char in)
+         (just (make-token #(ch (read-quoted in ch (.escape-char st)))
+                           token-quoted)))
+        ((or (char-digit? ch)
+             (in? ch [#\- #\+]))
+         (just (make-token ;(read-number in)
+                 (read-while char-decimal?
+                             in)
+                 token-number)))
+        (else
+          (just (make-token (read-while
+                              (fn (x)
+                                (not (or (char-space? x)
+                                         (in? x (.term-chars st)))))
+                              in)
+                            token-symbol)))))))
+
+(def get-token (st) (:: lexer-state -> (: maybe token))
+  (if (nothing? (.token st))
+    (let ((t (read-token st)))
+      (if (nothing? t)
+        nothing
+        (begin
+          (set! (.token st) t)
+          t)))
+    (.token st)))
+
+(def next-token (st) (:: lexer-state -> (: maybe token))
+  (set! (.token st)
+        (-> nothing :: (: maybe token)))
+  (get-token st))
+
+(def tokenize (st) (:: lexer-state -> [token])
+  (def loop (r) (:: [token] -> [token])
+    (let ((t (next-token st)))
+      (if (nothing? t)
+        (reverse r)
+        (loop (cons (from-just t) r)))))
+  (loop []))

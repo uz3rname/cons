@@ -1,0 +1,21 @@
+;result = 108
+(include "inc/memory.cons")
+(declare (link-with "m"))
+(extern round
+  ((:: real -> real)))
+
+(def struct-sum (x) (:: (int char real) -> int)
+  (+ (. x 0)
+     (* (-> (. x 1) :: int)
+        2)
+     (-> (round (. x 2)) :: int)))
+
+(def test1 () (:: -> int)
+  (struct-sum #(4 #\0 7.9)))
+
+(def test2 (n) (:: int -> int)
+  (struct-sum #(n #\0 7.9)))
+
+(/ (+ (test1) (test2 4))
+   2)
+

@@ -1,0 +1,16 @@
+;result = 126
+(include "inc/memory.cons")
+
+(def test (k)
+  (let* ((a k)
+         (b (+ a k))
+         (c (+ a b k))
+         (d (+ a b c k))
+         (e (+ a b c d k))
+         (f (+ a b c d e k))
+         (g (+ a b c d e f k))
+         (h (+ a b c d e f g k)))
+    (- (/ h k) k)))
+
+(test 2)
+

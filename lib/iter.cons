@@ -1,0 +1,214 @@
+(use core)
+(declare (module iter)
+         (export
+           iter
+           map
+           filter
+           take
+           drop
+           slice
+           for-each
+           accum
+           take-while
+           drop-while
+           reverse
+           nop
+           collect
+           xrange
+           count-from
+           iterate))
+
+(type (iter a)
+  (-> (: maybe a)))
+
+(def iter (x) (:: [a] -> (-> (: maybe a)))
+  (let ((env #(x)))
+    (fn () (:: -> (: maybe a))
+      (let ((lst (. env 0)))
+        (if (null? lst)
+          nothing
+          (let ((e (head lst)))
+            (set! (. env 0)
+                  (tail lst))
+            (just e)))))))
+
+(def iter (x) (:: #[a] -> (-> (: maybe a)))
+  (let ((env #(0)))
+    (fn () (:: -> (: maybe a))
+      (let ((i (. env 0)))
+        (if (>= i (length x))
+          nothing
+          (let ((e (elt x i)))
+            (inc! (. env 0))
+            (just e)))))))
+
+(def iter (x) (:: stream -> (-> (: maybe char)))
+  (let ((env #(x)))
+    (fn () (:: -> (: maybe char))
+      (let ((in (. env 0))
+            (ch (read-char (. env 0))))
+        (if (eof? in)
+          nothing
+          (just ch))))))
+
+(def map (f i) (:: (a -> b) (-> (: maybe a)) -> (-> (: maybe b)))
+  (fn () (:: -> (: maybe a))
+    (let ((x (i)))
+      (typecase x
+        (.just (just (f x)))
+        (.nothing nothing)))))
+
+(def filter (f i) (:: (a -> bool) (-> (: maybe a)) -> (-> (: maybe a)))
+  (fn () (:: -> (: maybe a))
+    (let loop ((x (i)))
+      (:: (: maybe a) -> (: maybe a))
+      (typecase x
+        (.just (if (f x)
+                 (just x)
+                 (loop (i))))
+        (.nothing nothing)))))
+
+(def take (n i) (:: int (-> (: maybe a)) -> (-> (: maybe a)))
+  (let ((env #(n)))
+    (fn () (:: -> (: maybe a))
+      (let ((env env)
+            (z (. env 0))
+            (i i))
+        (if (> z 0)
+          (let ((x (i)))
+            (typecase x
+              (.nothing nothing)
+              (.just (dec! (. env 0))
+                     (just x))))
+          nothing)))))
+
+(def drop (n i) (:: int (-> (: maybe a)) -> (-> (: maybe a)))
+  (let ((env #(n)))
+    (fn () (:: -> (: maybe a))
+      (let ((i i)
+            (env env))
+        (when (> (. env 0) 0)
+          (for-each (fn (_) (i))
+                    (xrange (. env 0)))
+          (set! (. env 0) 0))
+        (i)))))
+
+(def slice (i s e) (:: (: maybe a) int int -> (: maybe a))
+  (take (- e s)
+        (drop s i)))
+
+(def nop () (:: -> void)
+  ())
+
+(def for-each (f i) (:: (a -> b) (-> (: maybe a)) -> void)
+  (let ((x (i)))
+    (typecase x
+      (.just (f x)
+             (for-each f i))
+      (.nothing (nop)))))
+
+(def for-each (f i) (:: (a (-> (: maybe a)) -> b) (-> (: maybe a)) -> void)
+  (for-each (fn (x)
+              (f x i))
+            i))
+
+(def accum (f z i) (:: (a (-> (: maybe a)) b -> b) b (-> (: maybe a)) -> b)
+  (let loop ((z z)
+             (x (i)))
+    (:: a b -> a)
+    (typecase x
+      (.nothing z)
+      (.just (let ((nz (f x i z)))
+               (loop nz (i)))))))
+
+(def take-while (f i) (:: (a -> bool) (-> (: maybe a)) -> (-> (: maybe a)))
+  (let ((env #(#t)))
+    (fn () (:: -> (: maybe a))
+      (let ((env env))
+        (if (not (. env 0))
+          nothing
+          (let ((x (i)))
+            (cond
+              ((or (nothing? x)
+                   (not (f (from-just x))))
+               (set! (. env 0) #f)
+               nothing)
+              (else x))))))))
+
+(def drop-while (f i) (:: (a -> bool) (-> (: maybe a)) -> (-> (: maybe a)))
+  (let ((env #(#f)))
+    (fn () (:: -> (: maybe a))
+      (let ((env env))
+        (def loop (x) (:: (: maybe a) -> (: maybe a))
+          (cond ((or (nothing? x)
+                     (not (f (from-just x))))
+                 (set! (. env 0) #t)
+                 x)
+                (else (loop (i)))))     
+        (if (. env 0)
+          (i)
+          (loop (i)))))))
+
+(def reverse (i) (:: (-> (: maybe a)) -> (-> (: maybe a)))
+  (let loop ((res [])
+             (x (i)))
+    (:: [a] (: maybe a) -> (-> (: maybe a)))
+    (if (nothing? x)
+      (iter res)
+      (loop (cons (from-just x)
+                  res)
+            (i)))))
+
+(def collect (i) (:: (-> (: maybe a)) -> [a])
+  (let loop ((res [])
+             (i i))
+    (:: [a] (-> (: maybe a)) -> [a])
+    (let ((x (i)))
+      (typecase x
+        (.nothing (reverse res))    
+        (.just (loop (cons x res)
+                     i))))))
+
+(def collect (x) (:: a -> [b])
+  (collect (iter x)))
+
+(def xrange (s e i) (:: int int int -> (-> (: maybe int)))
+  (let ((env #(s)))
+    (fn () (:: -> (: maybe int))
+      (let ((s (. env 0)))
+        (if (if (> i 0)
+              (< s e)
+              (> s e))
+          (begin
+            (set! (. env 0)
+                  (+ s i))
+            (just s))
+          nothing)))))
+
+(def xrange (s e)
+  (xrange s e 1))
+
+(def xrange (e)
+  (xrange 0 e 1))
+
+(def count-from (s by) (:: int int -> (-> (: maybe int)))
+  (let ((env #(s)))
+    (fn () (:: -> (: maybe int))
+      (let ((s (. env 0)))
+        (set! (. env 0)
+              (+ s by))
+        (just s)))))
+
+(def count-from (s)
+  (count-from s 1))
+
+(macro iterate
+  ((($var $iter) $body ...)
+   (for-each (fn ($var)
+               $body ...)
+             (iter $iter)))
+  ((($var $iter-var $obj) $body ...)
+   (for-each (fn ($var $iter-var)
+               $body ...)
+             (iter $obj))))
+

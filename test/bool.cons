@@ -1,0 +1,28 @@
+;output = ynynny
+
+(extern putchar ((:: char -> void)))
+
+(def even? (x)
+  (= (mod x 2) 0))
+
+(def odd? (x)
+  (= (mod x 2) 1))
+
+(def test (x)
+  (or (and (even? x)
+           (>= x 100))
+      (and (odd? x)
+           (< x 100))))
+
+(def try (x)
+  (putchar (if x #\y #\n)))
+
+(try (test 3))
+(try (test 92))
+(try (test 120))
+(try (test 121))
+(try (or (test 0)
+         (test 20)))
+(try (or (test 101)
+         (test 21)))
+

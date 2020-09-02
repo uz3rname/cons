@@ -1,0 +1,17 @@
+(extern printf ((:: *byte ... -> void)))
+(extern putchar ((:: char -> void)))
+(extern getchar ((:: -> char)))
+
+(def display (x) (:: int -> void)
+  (printf $"%d" x))
+
+(def display (x) (:: real -> void)
+  (printf $"%f" x))
+
+(def display (x) (:: char -> void)
+  (putchar x))
+
+(def print (x) (:: a -> void)
+  (display x)
+  (printf $"\n"))
+

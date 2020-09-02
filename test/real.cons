@@ -1,0 +1,10 @@
+;result = 78
+(declare (link-with "-lm"))
+
+(extern sqrt ((:: real -> real)))
+
+(-> (+ (* (/ (* 7.0 7.0) 7.0)
+          (+ (sqrt 25.0) 5.0))
+       (* 4.0 2.0))
+    :: int) 
+

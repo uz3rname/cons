@@ -1,0 +1,18 @@
+;result = 54
+(include "inc/list.cons")
+(include "inc/memory.cons")
+
+(def length (xs) (:: [a] -> int)
+  (if (null? xs)
+    0
+    (+ 1 (length (.cdr xs)))))
+
+(let ((xs [#\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9]))
+  (+ (length xs)
+     (foldr (fn (x y)
+              (+ (- (-> x :: int)
+                    48)
+                 y))
+            0
+            xs)))
+

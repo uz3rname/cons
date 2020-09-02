@@ -1,0 +1,37 @@
+if exists("b:current_syntax")
+  finish
+endif
+
+setlocal iskeyword=A-Z,a-z,48-57,+,-,*,/,#,=,<,>,:,?,!,%,$
+syn match Comment ";.*$"
+syn match Other ,[a-zA-Z0-9+\-*/=<>?!^_~][a-zA-Z0-9+\-*/=<>?!^_~']*,
+syn keyword Statement def macro type alias if let else
+syn keyword Statement begin fn
+syn keyword Statement declare export export-all single hidden use include extern
+syn keyword Statement deref offset eq or and not
+syn keyword StorageClass :: : -> =>
+syn match Number "[+-]\?[0-9][0-9]*"
+syn match Number "[+-]\?[0-9].[0-9][0-9]*"
+syn match Number "[+-]\?[0-9][0-9]*.[0-9][0-9]*"
+syn match Number "#b[01][01]*"
+syn match Number "#x[0-9a-fA-F][0-9a-fA-F]*"
+syn match String '"[^"]*[^\\]"'
+syn match String '""'
+syn match PreProc "\.[a-zA-Z][a-zA-Z0-9\-]*"
+syn match Statement "[a-zA-Z\-][a-zA-Z\-]*!"
+syn match Constant "#[tf]"
+syn match Constant "#\\."
+syn match Constant "#\\[a-zA-Z][a-zA-Z]*"
+syn match Identifier  ,'[a-zA-Z0-9+\-*/=<>?!^_~][a-zA-Z0-9+\-*/=<>?!^_~']*,
+syn match PreProc "$[a-zA-Z0-9\-][a-zA-Z0-9\-]*"
+syn match PreProc "<[a-z][0-9]*>"
+
+syn region list matchgroup=Delimiter start="(" end=")" contains=ALL
+syn region list matchgroup=Type start="#(" end=")" contains=ALL
+syn region list matchgroup=Delimiter start="\[" end="\]" contains=ALL
+syn region list matchgroup=Delimiter start="#\[" end="\]" contains=ALL
+syn region list matchgroup=Delimiter start="$\[" end="\]" contains=ALL
+
+setl lisp
+setl lispwords=def,if,fn,begin,extern,macro,type
+

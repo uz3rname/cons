@@ -1,0 +1,15 @@
+;result = 16
+
+(def sqr (x)
+  (* x x))
+
+(def sizeof
+  ((x) (:: int -> int)
+    8)
+  ((x) (:: char -> int)
+    4))
+
+(+ (sqr 2)
+   (sizeof 2)
+   (sizeof #\a))
+

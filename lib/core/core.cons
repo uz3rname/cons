@@ -1,0 +1,1129 @@
+(alias cstring *byte)
+
+(extern call/cc
+  ((:: ((a -> throw) -> a) -> a) "_call_cc"))
+
+(extern values
+  ((:: a -> a) "_values")
+  ((:: a b -> a) "_values")
+  ((:: a b c -> a) "_values")
+  ((:: a b c d -> a) "_values")
+  ((:: a b c d e -> a) "_values")
+  ((:: a b c d e f -> a) "_values"))
+
+(extern call-with-values
+  ((:: (-> a) (a -> b) -> b) "_call_with_values")
+  ((:: (-> a) (a b -> c) -> c) "_call_with_values")
+  ((:: (-> a) (a b c -> d) -> d) "_call_with_values")
+  ((:: (-> a) (a b c d -> e) -> e) "_call_with_values")
+  ((:: (-> a) (a b c d e -> f) -> f) "_call_with_values")
+  ((:: (-> a) (a b c d e f -> g) -> g) "_call_with_values"))
+
+(def id (x) (:: a -> a) x)
+
+(def = (a b) (:: a a -> bool)
+  (eq a b))
+
+(def = (a b) (:: (number a) => a a -> bool)
+  (= a b))
+
+(def /= (a b) (:: a a -> bool)
+  (neq a b))
+
+(def > (a b) (:: (number a) => a a -> bool)
+  (> a b))
+
+(def < (a b) (:: (number a) => a a -> bool)
+  (< a b))
+
+(def >= (a b) (:: (number a) => a a -> bool)
+  (>= a b))
+
+(def <= (a b) (:: (number a) => a a -> bool)
+  (<= a b))
+
+(def >= (a b) (:: a a -> bool)
+  (or (> a b)
+      (= a b)))
+
+(def <= (a b) (:: a a -> bool)
+  (or (< a b)
+      (= a b)))
+
+(def > (a b) (:: a a -> bool)
+  (not (<= a b)))
+
+(def < (a b) (:: a a -> bool)
+  (not (>= a b)))
+
+(def > (a b) (:: char char -> bool)
+  (> (-> a :: int)
+     (-> b :: int)))
+
+(def + (a b) (:: (number a) => a a -> a) (+ a b))
+(def + (a b c) (:: (number a) => a a a -> a) (+ a b c))
+(def + (a b c d) (:: (number a) => a a a a -> a) (+ a b c d))
+(def + (a b c d e) (:: (number a) => a a a a a -> a) (+ a b c d e))
+(def + (a b c d e f) (:: (number a) => a a a a a a -> a) (+ a b c d e f))
+
+(def - (a b) (:: (number a) => a a -> a) (- a b))
+(def - (a b c) (:: (number a) => a a a -> a) (- a b c))
+(def - (a b c d) (:: (number a) => a a a a -> a) (- a b c d))
+(def - (a b c d e) (:: (number a) => a a a a a -> a) (- a b c d e))
+(def - (a b c d e f) (:: (number a) => a a a a a a -> a) (- a b c d e f))
+
+(def * (a b) (:: (number a) => a a -> a) (* a b))
+(def * (a b c) (:: (number a) => a a a -> a) (* a b c))
+(def * (a b c d) (:: (number a) => a a a a -> a) (* a b c d))
+(def * (a b c d e) (:: (number a) => a a a a a -> a) (* a b c d e))
+(def * (a b c d e f) (:: (number a) => a a a a a a -> a) (* a b c d e f))
+
+(def / (a b) (:: (number a) => a a -> a) (/ a b))
+(def / (a b c) (:: (number a) => a a a -> a) (/ a b c))
+(def / (a b c d) (:: (number a) => a a a a -> a) (/ a b c d))
+(def / (a b c d e) (:: (number a) => a a a a a -> a) (/ a b c d e))
+(def / (a b c d e f) (:: (number a) => a a a a a a -> a) (/ a b c d e f))
+
+(def mod (a b) (:: int int -> int) (mod a b))
+
+(def not (x) (:: bool -> bool)
+  (if x #f #t))
+
+(def apply (f x) (:: (a -> b) #(a) -> b)
+  (f (. x 0)))
+(def apply (f x) (:: (a b -> c) #(a b) -> c)
+  (f (. x 0)
+     (. x 1)))
+(def apply (f x) (:: (a b c -> d) #(a b c) -> d)
+  (f (. x 0)
+     (. x 1)
+     (. x 2)))
+(def apply (f x) (:: (a b c d -> e) #(a b c d) -> e)
+  (f (. x 0)
+     (. x 1)
+     (. x 2)
+     (. x 3)))
+(def apply (f x) (:: (a b c d e -> f) #(a b c d e) -> f)
+  (f (. x 0)
+     (. x 1)
+     (. x 2)
+     (. x 3)
+     (. x 4)))
+(def apply (f x) (:: (a b c d e f -> g) #(a b c d e f) -> g)
+  (f (. x 0)
+     (. x 1)
+     (. x 2)
+     (. x 3)
+     (. x 4)
+     (. x 5)))
+
+(def expt (x n) (:: a a -> a)
+  (case n
+    ((0) 1)
+    ((1) x)
+    (else (* x (expt x (- n 1))))))
+
+(def trunc (x) (:: real -> int)
+  (-> x :: int))
+
+(def max (a b) (:: a a -> a)
+  (if (> a b) a b))
+
+(def min (a b) (:: a a -> a)
+  (if (< a b) a b))
+
+(def abs (x) (:: a -> a)
+  (if (< x 0) (* x -1) x))
+
+(def integer? (x) (:: real -> bool)
+  (= (trunc x)
+     x))
+
+(type (maybe a)
+  (or (.nothing bool)
+      (.just a)))
+
+(def just (x) (:: a -> (: maybe a))
+  (-> x :: (: maybe <a>)))
+
+(def nothing #f)
+
+(def just? (x) (:: (: maybe a) -> bool)
+  (is x .just))
+
+(def nothing? (x) (:: (: maybe a) -> bool)
+  (is x .nothing))
+
+(def from-just (x) (:: (: maybe a) -> a)
+  (.just x))
+
+(type (list a)
+  #((.head a)
+    (.tail [a])))
+
+(def cons (x xs) (:: a [a] -> [a])
+  #(x xs))
+
+(def head (xs) (:: [a] -> a)
+  (if (null? xs)
+    (die "Accessing head of empty list.")
+    (.head xs)))
+
+(def tail (xs) (:: [a] -> [a])
+  (if (null? xs)
+    (die "Accessing tail of empty list.")
+    (.tail xs)))
+
+(def null? (x) (:: a -> bool)
+  (= (-> x :: *void)
+     null-ptr))
+
+(def = (a b) (:: [a] [a] -> bool)
+  (cond ((null? a) (null? b))
+        ((null? b) #f)
+        (else (and (= (head a)
+                      (head b))
+                   (= (tail a) (tail b))))))
+
+(def foldr (f z xs) (:: (a b -> b) b [a] -> b)
+  (if (null? xs)
+    z
+    (f (head xs)
+       (foldr f z (tail xs)))))
+
+(def foldl (f z xs) (:: (b a -> b) b [a] -> b)
+  (if (null? xs)
+    z
+    (foldl f (f z (head xs)) (tail xs))))
+
+(def length (xs) (:: [a] -> int)
+  (foldl (fn (len _)
+           (+ len 1))
+         0
+         xs))
+
+(def elt (xs i) (:: [a] int -> a)
+  (if (= i 0)
+    (head xs)
+    (elt (tail xs) (- i 1))))
+
+(def set-elt (xs i x) (:: [a] int a -> [a])
+  (cond ((= i 0)
+         (if (null? xs)
+           (die "Accessing head of empty list")
+           (cons x (tail xs))))
+        ((null? xs)
+         (die "Accessing head of empty list"))
+        (else (set-elt (tail xs)
+                       (- i 1)
+                       x))))
+
+(def ++ (xs ys) (:: [a] [a] -> [a])
+  (foldr cons ys xs))
+
+(def ++ (a b c)
+  (++ a (++ b c)))
+
+(def ++ (a b c d)
+  (++ (++ a b)
+      (++ c d)))
+
+(def ++ (a b c d e)
+  (++ (++ a b)
+      (++ c d)
+      e))
+
+(def ++ (a b c d e f)
+  (++ (++ a b c)
+      (++ d e f)))
+
+(def reverse (xs) (:: [a] -> [a])
+  (foldl (fn (xs x) (:: [a] a -> [a])
+           (cons x xs))
+         []
+         xs))
+
+(def map (f xs) (:: (a -> b) [a] -> [b])
+  (reverse (foldl (fn (xs x) (:: [b] a -> [b])
+                    (cons (f x) xs))
+                  []
+                  xs)))
+
+(def map (f xs ys) (:: (a b -> c) [a] [b] -> [c])
+  (if (or (null? xs)
+          (null? ys))
+    []
+    (cons (f (head xs)
+             (head ys))
+          (map f (tail xs) (tail ys)))))
+
+(def map*
+  ((f xs) (:: (a -> b) [#(a)] -> [b])
+          (map (fn (x)
+                 (apply f x))
+               xs))
+  ((f xs) (:: (a b -> c) [#(a b)] -> [c])
+          (map (fn (x)
+                 (apply f x))
+               xs))
+  ((f xs) (:: (a b c -> d) [#(a b c)] -> [d])
+          (map (fn (x)
+                 (apply f x))
+               xs))
+  ((f xs) (:: (a b c d -> e) [#(a b c d)] -> [e])
+          (map (fn (x)
+                 (apply f x))
+               xs))
+  ((f xs) (:: (a b c d e -> f) [#(a b c d e)] -> [f])
+          (map (fn (x)
+                 (apply f x))
+               xs))
+  ((f xs) (:: (a b c d e f -> g) [#(a b c d e f)] -> [g])
+          (map (fn (x)
+                 (apply f x))
+               xs)))
+
+(def zip (a b) (:: [a] [b] -> [#(a b)])
+  (map (fn (x y) (:: a b -> #(a b))
+         #(x y))
+       a
+       b))
+
+(def take (n xs) (:: int [a] -> [a])
+  (let loop ((n n)
+             (xs xs)
+             (r []))
+    (:: int [a] [a] -> [a])
+    (if (or (null? xs)
+            (= n 0))
+      (reverse r)
+      (loop (- n 1)
+            (tail xs)
+            (cons (head xs) r)))))
+
+(def drop (n xs) (:: int [a] -> [a])
+  (if (or (null? xs)
+          (= n 0))
+    xs
+    (drop (- n 1) (tail xs))))
+
+(def slice (xs s e) (:: [a] int int -> [a])
+  (take (- e s)
+        (drop s xs)))
+
+(def take-while (p xs) (:: (a -> bool) [a] -> [a])
+  (cond ((null? xs) [])
+        ((p (head xs))
+         (cons (head xs)
+               (take-while p (tail xs))))
+        (else [])))
+
+(def drop-while (p xs) (:: (a -> bool) [a] -> [a])
+  (if (null? xs)
+    []
+    (let+ (h . t) xs
+          (if (p h)
+            (drop-while p t)
+            xs))))
+
+(def all (f xs) (:: (a -> bool) [a] -> bool)
+  (cond ((null? xs) #t)
+        ((f (head xs))
+         (all f (tail xs)))
+        (else #f)))
+
+(def any (f xs) (:: (a -> bool) [a] -> bool)
+  (cond ((null? xs) #f)
+        ((f (head xs)) #t)
+        (else (any f (tail xs)))))
+
+(def filter (p xs) (:: (a -> bool) [a] -> [a])
+  (cond ((null? xs) [])
+        ((p (head xs))
+         (cons (head xs)
+               (filter p (tail xs))))
+        (else (filter p (tail xs)))))
+
+(def memp (p xs) (:: (a -> bool) [a] -> [a])
+  (if (or (null? xs)
+          (p (head xs)))
+    xs
+    (memp p (tail xs))))
+
+(def member (x xs) (:: a [a] -> [a])
+  (memp (cut = x) xs))
+
+(def in? (x xs f) (:: a [a] (a a -> bool) -> bool)
+  (cond ((null? xs) #f)
+        ((f (head xs) x) #t)
+        (else (in? x (tail xs)))))
+
+(def in? (x xs) (:: a [a] -> bool)
+  (in? x xs =))
+
+(def for-each (f xs) (:: (a -> b) [a] -> void)
+  (if (null? xs)
+    ()
+    (begin
+      (f (head xs))
+      (for-each f (tail xs)))))
+
+(def range
+  ((s e d) (:: a a a -> [a])
+    (let* ((dir (> e s))
+           (step (if dir
+                   (abs d)
+                   (* (abs d) -1))))
+      (let loop ((x s)
+                 (res []))
+        (:: a [a] -> [a])
+        (if (if dir
+              (>= x e)
+              (<= x e))
+          (reverse res)
+          (loop (+ x step)
+                (cons x res))))))
+  ((s e) (:: a a -> [a])
+    (range s e 1))
+  ((e) (:: a -> [a])
+    (range 0 e)))
+
+(def enumerate (xs) (:: [a] -> [#(int a)])
+  (def loop (i xs res) (:: int [a] [#(int a)] -> [#(int a)])
+    (if (null? xs)
+      (reverse res)
+      (loop (+ i 1)
+            (tail xs)
+            (cons #(i (head xs))
+                  res))))
+  (loop 0 xs []))
+
+(def repeat (x n) (:: [a] int -> [a])
+  (if (= n 0)
+    []
+    (++ x (repeat x (- n 1)))))
+
+(def find (p xs) (:: (a -> bool) [a] -> (: maybe a))
+  (if (null? xs)
+    nothing
+    (let+ (h . t) xs
+      (if (p h)
+        (just h)
+        (find p t)))))
+
+(def find (p xs d) (:: (a -> bool) [a] a -> a)
+  (let ((r (find p xs)))
+    (typecase r
+      (.nothing d)
+      (.just r))))
+
+(def index (p xs) (:: (a -> bool) [a] -> (: maybe int))
+  (let loop ((xs xs)
+             (i 0))
+    (:: [a] int -> (: maybe int))
+    (cond ((null? xs) nothing)
+          ((p (head xs)) (just i))
+          (else (loop (tail xs) (+ i 1))))))
+
+(type (array a)
+  #((.element-size int)
+    (.length int)
+    (.buf-size int)
+    (.buf *a)))
+
+(alias string #[char])
+
+(def length (xs) (:: #[a] -> int)
+  (.length xs))
+
+(def elt (xs i) (:: #[a] int -> a)
+  (if (>= i (.length xs))
+    (die "Array index out of bounds")
+    (deref (offset (.buf xs) i))))
+
+(def set-elt (xs i x) (:: #[a] int a -> #[a])
+  (++ (slice xs 0 i)
+      #[x]
+      (slice xs i)))
+
+(def set-elt! (xs i x) (:: #[a] int a -> #[a])
+  (if (>= i (length xs))
+    (die "Array index out of bounds")
+    (begin
+      (mov! x (offset (.buf xs) i))
+      xs)))
+
+(def empty? (xs) (:: #[a] -> bool)
+  (= (length xs) 0))
+
+(def head (xs) (:: #[a] -> a)
+  (if (= (length xs) 0)
+    (die "Array index out of bounds")
+    (elt xs 0)))
+
+(def tail (xs) (:: #[a] -> #[a])
+  (if (= (length xs) 0)
+    (die "Array index out of bounds")
+    (let ((len (- (.length xs) 1)))
+      #((.element-size xs)
+        len
+        len
+        (offset (.buf xs) 1)))))
+
+(def array-copy (xs size) (:: #[a] int -> #[a])
+  (let* ((es (.element-size xs))
+         (len (min size (.length xs)))
+         (buf (mem-alloc (* es size))))
+    (c-memcpy buf (-> (.buf xs) :: *void) (* es len))
+    #(es len size buf)))
+
+(def array-copy (xs) (:: #[a] -> #[a])
+  (array-copy xs (.length xs)))
+
+(def array-concat! (a b) (:: #[a] #[a] -> #[a])
+  (c-memcpy (-> (offset (.buf a)
+                        (.length a))
+                :: *void)
+            (-> (.buf b) :: *void)
+            (* (.element-size a)
+               (.length b)))
+  (inc! (.length a)
+        (.length b))
+  a)
+
+(def make-array (x s) (:: a int -> #[a])
+  (let loop ((i 1)
+             (xs (array-copy #[x] s)))
+    (:: int #[a] -> #[a])
+    (case i
+      ((s)
+       (set! (.length xs) s)
+       xs)
+      (else
+        (mov! x (offset (.buf xs) i))
+        (loop (+ i 1) xs)))))
+
+(def ++ (a b) (:: #[a] #[a] -> #[a])
+  (let ((c (array-copy a (+ (.length a)
+                            (.length b)))))
+    (array-concat! c b)))
+
+(def = (a b) (:: #[a] #[a] -> bool)
+  (let ((l (length a)))
+    (def loop (i) (:: a -> bool)
+      (if (>= i l)
+        #t
+        (and (= (elt a i)
+                (elt b i))
+             (loop (+ i 1)))))
+    (and (= l (length b))
+         (loop 0))))
+
+(def /= (a b) (:: #[a] #[a] -> bool)
+  (not (= a b)))
+
+(def > (a b) (:: #[a] #[a] -> bool)
+  (let ((la (length a))
+        (lb (length b)))
+    (let loop ((i 0))
+      (:: int -> bool)
+      (cond ((>= i la) #f)
+            ((>= i lb) #t)
+            ((> (elt a i)
+                (elt b i))
+             #t)
+            ((< (elt a i)
+                (elt b i))
+             #f)
+            (else (loop (+ i 1)))))))
+
+(def < (a b) (:: #[a] #[a] -> bool)
+  (and (not (= a b))
+       (not (> a b))))
+
+(def >= (a b) (:: #[a] #[a] -> bool)
+  (or (= a b)
+      (> a b)))
+
+(def <= (a b) (:: #[a] #[a] -> bool)
+  (or (= a b)
+      (< a b)))
+
+(def foldr (f z xs) (:: (a b -> b) b #[a] -> b)
+  (let ((l (length xs)))
+    (let loop ((z z)
+               (i 0))
+      (:: b int -> b)
+      (if (>= i l)
+        z
+        (f (elt xs i)
+           (loop z (+ i 1)))))))
+
+(def foldl (f z xs) (:: (b a -> b) b #[a] -> b)
+  (let ((l (length xs)))
+    (let loop ((z z)
+               (i 0))
+      (:: b int -> b)
+      (if (>= i l)
+        z
+        (loop (f z (elt xs i))
+              (+ i 1))))))
+
+(def map (f xs) (:: (a -> b) #[a] -> #[b])
+  (foldl (fn (xs x)
+           (++ xs #[(f x)]))
+         #[]
+         xs))
+
+(def map (f xs ys) (:: (a b -> c) #[a] #[b] -> #[c])
+  (let ((lx (length xs))
+        (ly (length ys)))
+    (def loop (f i) (:: (a b -> c) int -> #[c])
+      (if (or (>= i lx)
+              (>= i ly))
+        #[]
+        (++ #[(f (elt xs i)
+                 (elt ys i))]
+            (loop f (+ i 1)))))
+    (loop f 0)))
+
+(def slice (xs s e) (:: #[a] int int -> #[a])
+  (let ((l (length xs)))
+    (if (or (> s l)
+            (> e l)
+            (> e s))
+      (die "Invalid array bounds")
+      (let ((len (- e s))
+            (es (.element-size xs)))
+        #((.element-size xs)
+          len
+          len
+          (offset (.buf xs) s))))))
+
+(def slice (xs s) (:: #[a] int -> #[a])
+  (slice xs s (length xs)))
+
+(def for-each
+  ((f xs i) (:: (a -> void) #[a] int -> void)
+            (unless (>= i (length xs))
+              (f (elt xs i))
+              (for-each f xs (+ i 1))))
+  ((f xs) (:: (a -> void) #[a] -> void)
+          (for-each f xs 0)))
+
+(def index (p xs i) (:: (a -> bool) #[a] int -> (: maybe int))
+  (let ((l (length xs)))
+    (def loop (n) (:: int -> (: maybe int))
+      (cond ((>= n l)
+             nothing)
+            ((p (elt xs n))
+             (just n))
+            (else
+              (loop (+ n 1)))))
+    (loop i)))
+
+(def index (p xs) (:: (a -> bool) #[a] -> (: maybe int))
+  (index p xs 0))
+
+(def array->list (xs) (:: #[a] -> [a])
+  (let ((l (length xs)))
+    (def loop (i xs r) (:: int #[a] [a] -> [a])
+      (if (>= i l)
+        (reverse r)
+        (loop (+ i 1)
+              xs
+              (cons (elt xs i) r))))
+    (loop 0 xs [])))
+
+(def list->array (xs) (:: [a] -> #[a])
+  (def loop (xs i) (:: [a] int -> #[a])
+    (let ((a (if (null? (tail xs))
+               (make-array (head xs)
+                           (+ i 1))
+               (loop (tail xs)
+                     (+ i 1)))))
+      (set-elt! a i (head xs))
+      a))
+  (if (null? xs)
+    #[]
+    (loop xs 0)))
+
+(def between (x lo hi)
+  (and (>= x lo)
+       (<= x hi)))
+
+(def char-digit? (x base) (:: char int -> bool)
+  (if (<= base 10)
+    (between (-> x :: int)
+             48
+             (+ 48 (- base 1)))
+    (or (between (-> x :: int) 48 57)
+        (or (between (-> x :: int)
+                     65
+                     (+ 65 (- base 11)))
+            (between (-> x :: int)
+                     97
+                     (+ 97 (- base 11)))))))
+
+(def char-digit? (x) (:: char -> bool)
+  (between (-> x :: int) 48 57))
+
+(def char-alpha? (x) (:: char -> bool)
+  (or (between (-> x :: int) 65 90)
+      (between (-> x :: int) 97 122)))
+
+(def char-space? (x) (:: char -> bool)
+  (in? x [#\space #\nl #\tab]))
+
+(def char-upcase? (x) (:: char -> bool)
+  (between (-> x :: int) 65 90))
+
+(def char-downcase? (x) (:: char -> bool)
+  (between (-> x :: int) 97 122))
+
+(def char-upcase (x) (:: char -> char)
+  (if (char-downcase? x)
+    (-> (- (-> x :: int) 32) :: char)
+    x))
+
+(def char-downcase (x) (:: char -> char)
+  (if (char-upcase? x)
+    (-> (+ (-> x :: int) 32) :: char)
+    x))
+
+(def char-digit (x base) (:: char int -> int)
+  (if (char-digit? x base)
+    (- (-> x :: int)
+       (cond
+         ((>= (-> x :: int) 97)
+          87)
+         ((>= (-> x :: int) 65)
+          55)
+         (else 48)))
+    (die "Invalid digit character")))
+
+(def char-digit (x) (:: char -> int)
+  (if (char-digit? x)
+    (- (-> x :: int) 48)
+    (die "Invalid digit character")))
+
+(def str (x base) (:: int int -> string)
+  (def loop (i s) (:: int string -> string)
+    (if (= i 0)
+      s
+      (let ((z (+ (mod i base) 48)))
+        (loop (/ i base)
+              (++ #[(-> (if (> z 57)
+                          (+ z 7)
+                          z)
+                        :: char)]
+                  s)))))
+  (if (= x 0)
+    "0"
+    (let ((s (loop (abs x) "")))
+      (if (>= x 0)
+        s
+        (++ "-" s)))))
+
+(def str (x) (:: int -> string)
+  (str x 10))
+
+(def str (x) (:: byte -> string)
+  (++ "#x"
+      (str (-> x :: int)
+           16)))
+
+(def str (x) (:: bool -> string)
+  (if x "#t" "#f"))
+
+(def str (x) (:: real -> string)
+  (let ((buf (mem-alloc 32)))
+    (c-snprintf buf
+                32
+                (if (integer? x)
+                  $"%.0g"
+                  real-formatter)
+                x)
+    (cstring->string buf)))
+
+(def string->int (s base ignore-junk) (:: string int bool -> int)
+  (let ((l (length s)))
+    (def loop (x i) (:: int int -> int)
+      (if (>= i l)
+        x
+        (let ((ch (elt s i)))
+          (if (char-digit? ch base)
+            (loop (+ x (* (expt base (- l i 1))
+                          (char-digit ch base)))
+                  (+ i 1))
+            (if ignore-junk
+              (/ x (expt base (- l i))) 
+              (die "Junk character in integer representation"))))))
+    (cond
+      ((= l 0)
+       (die "Can't parse null string"))
+      ((= (elt s 0) #\-)
+       (if (> l 1)
+         (* (loop 0 1) -1)
+         (die "Invalid integer representation")))
+      ((= (elt s 0) #\+)
+       (if (> l 1)
+         (loop 0 1)
+         (die "Invalid integer representation")))
+      (else (loop 0 0)))))
+
+(def string->int (s base) (:: string int -> int)
+  (string->int s base #t))
+
+(def string->int (s) (:: string -> int)
+  (string->int s 10 #t))
+
+(extern c-atof ((:: cstring -> real) "atof"))
+
+(def string->real (s) (:: string -> real)
+  (c-atof (string->cstring s)))
+
+(def foldr-map (f g z xs) (:: (a b -> b) (c -> a) b [c] -> b)
+  (foldr (fn (x y)
+           (f (g x) y))
+         z
+         xs))
+
+(def foldl-map (f g z xs) (:: (b a -> b) (c -> a) b [c] -> b)
+  (foldl (fn (x y)
+           (f y (g x)))
+         z
+         xs))
+
+(def join (d xs) (:: #[a] [#[a]] -> #[a])
+  (cond
+    ((null? xs) #[])
+    ((null? (tail xs))
+     (head xs))
+    (else
+      (foldl (fn (s x)
+               (++ s d x))
+             (head xs)
+             (tail xs)))))
+
+(def ljust (s n x) (:: #[a] int a -> #[a])
+  (let ((l (length s)))
+    (if (>= l n)
+      s
+      (let ((a (make-array x n)))
+        (c-memcpy (offset (.buf a)
+                          (- n l))
+                  (.buf s)
+                  (* l (.element-size s)))
+        a))))
+
+(def ljust (s n) (:: string int -> string)
+  (ljust s n #\space))
+
+(def rjust (s n x) (:: #[a] int a -> #[a])
+  (def loop (s n x) (:: #[a] int a -> #[a])
+    (case n
+      ((0) s)
+      (else (++ (loop s (- n 1) x)
+                #[x]))))
+  (let ((l (length s)))
+    (if (>= l n)
+      s
+      (loop s (- n l) x))))
+
+(def rjust (s n) (:: string int -> string)
+  (rjust s n #\space))
+
+(def ltrim (s p) (:: #[a] (a -> bool) -> #[a])
+  (let ((l (length s)))
+    (def loop (s i) (:: #[a] int -> #[a])
+      (cond ((>= i l) #[])
+            ((p (elt s i))
+             (loop s (+ i 1)))
+            (else
+              (slice s i))))
+    (loop s 0)))
+
+(def ltrim (s x) (:: #[a] a -> #[a])
+  (ltrim s (cut = x)))
+
+(def ltrim (s x) (:: #[a] [a] -> #[a])
+  (ltrim s
+         (fn (e)
+           (in? e x))))
+
+(def rtrim (s p) (:: #[a] (a -> bool) -> #[a])
+  (let ((l (length s)))
+    (def loop (s i) (:: #[a] int -> #[a])
+      (cond ((< i 0) #[])
+            ((p (elt s i))
+             (loop s (- i 1)))
+            (else
+              (slice s 0 (+ i 1)))))
+    (loop s (- (length s) 1))))
+
+(def rtrim (s x) (:: #[a] a -> #[a])
+  (rtrim s (cut = x)))
+
+(def rtrim (s x) (:: #[a] [a] -> #[a])
+  (rtrim s
+         (fn (e)
+           (in? e x))))
+
+(def trim (s f) (:: #[a] b -> #[a])
+  (ltrim (rtrim s f) f))
+
+(def trim (s) (:: string -> string)
+  (trim s [#\space #\nl]))
+
+(def search (wat where from) (:: #[a] #[a] int -> (: maybe int))
+  (cond ((or (< (- (.length where)
+                   from)
+                (.length wat))
+             (>= from (.length where)))
+         nothing)
+        ((= (slice where from (+ from (.length wat)))
+            wat)
+         (just from))
+        (else
+          (search wat where (+ from 1)))))
+
+(def search (wat where) (:: #[a] #[a] -> (: maybe int))
+  (search wat where 0))
+
+(def search-back (wat where from) (:: #[a] #[a] int -> (: maybe int))
+  (cond
+    ((> from (- (.length where)
+                (.length wat)))
+     (search-back wat where (- (.length where)
+                               (.length wat))))
+    ((< from 0)
+     nothing)
+    ((= (slice where from (+ from (.length wat)))
+        wat)
+     (just from))
+    (else (search-back wat where (- from 1)))))
+
+(def search-back (wat where) (:: #[a] #[a] -> (: maybe int))
+  (search-back wat where (- (.length where)
+                            (.length wat))))
+
+(extern printf ((:: *byte ... -> void)))
+
+(def split (xs d max) (:: #[a] #[a] int -> [#[a]])
+  (def loop (a from res n) (:: #[a] int [#[a]] int -> [#[a]])
+    (let ((i (search d a from)))
+      (typecase i
+        (.nothing (reverse (cons (slice a from)
+                                 res)))
+        (.just (loop a
+                     (+ i 1)
+                     (cons (slice a from i)
+                           res)
+                     (- n 1))))))
+  (loop xs 0 [] max))
+
+(def split (xs d) (:: #[a] #[a] -> [#[a]])
+  (split xs d -1))
+
+(def repeat (x n) (:: #[a] int -> #[a])
+  (if (= n 0)
+    #[]
+    (++ x (repeat x (- n 1)))))
+
+(def string-upcase (s) (:: string -> string)
+  (map char-upcase s))
+
+(def string-downcase (s) (:: string -> string)
+  (map char-downcase s))
+
+(def str (x) (:: string -> string)
+  x)
+
+(def repr (x) (:: bool -> string)
+  (if x "#t" "#f"))
+
+(def repr (x) (:: int -> string)
+  (str x))
+
+(def repr (x) (:: byte -> string)
+  (++ "#x" (str (-> x :: int) 16)))
+
+(extern c-memset ((:: *void byte int -> *void) "memset"))
+
+(def repr (x) (:: real -> string)
+  (str x))
+
+(def repr (x) (:: string -> string)
+  (++ "\"" x "\""))
+
+(def repr (x) (:: char -> string)
+  (++ "#\\"
+      (case x
+        (((-> 0 :: char)) "\\0")
+        ((#\nl) "nl")
+        ((#\tab) "tab")
+        ((#\space) "space")
+        (else #[x]))))
+
+(def repr (xs) (:: [a] -> string)
+  (++ "["
+      (join " " (map repr xs))
+      "]"))
+
+(def repr (xs) (:: #[a] -> string)
+  (++ "#["
+      (join " "
+            (map repr
+                 (array->list xs)))
+      "]"))
+
+(def repr (x) (:: #(a) -> string)
+  (++ "#(" (repr (. x 0)) ")"))
+
+(def repr (x) (:: #(a b) -> string)
+  (++ "#("
+      (repr (. x 0))
+      (++ " " (repr (. x 1)))
+      ")"))
+
+(def repr (x) (:: #(a b c) -> string)
+  (++ "#("
+      (repr (. x 0))
+      (++ " " (repr (. x 1)))
+      (++ " " (repr (. x 2)))
+      ")"))
+
+(def repr (x) (:: #(a b c d) -> string)
+  (++ "#("
+      (repr (. x 0))
+      (++ " " (repr (. x 1)))
+      (++ " " (repr (. x 2)))
+      (++ " " (repr (. x 3)))
+      ")"))
+
+(def repr (x) (:: #(a b c d e) -> string)
+  (++ "#("
+      (++ (repr (. x 0))
+          (++ " " (repr (. x 1)))
+          (++ " " (repr (. x 2))))
+      (++ (++ " " (repr (. x 3)))
+          (++ " " (repr (. x 4))))
+      ")"))
+
+(def repr (x) (:: #(a b c d e f) -> string)
+  (++ "#("
+      (++ (repr (. x 0))
+          (++ " " (repr (. x 1)))
+          (++ " " (repr (. x 2))))
+      (++ (++ " " (repr (. x 3)))
+          (++ " " (repr (. x 4)))
+          (++ " " (repr (. x 5))))
+      ")"))
+
+(def repr (x) (:: (: maybe a) -> string)
+  (typecase x
+    (.nothing "nothing")
+    (.just (repr x))))
+
+(type (alist a b)
+  [#(a b)])
+
+(def alist (keys values) (:: [a] [b] -> (: alist a b))
+  (zip keys values))
+
+(def assoc (k xs) (:: a (: alist a b) -> (: maybe b))
+  (let ((p (find ($ = (. _ 0) k)
+                 (-> xs :: [#(<a> <b>)]))))
+    (typecase p
+      (.just (just (. p 1)))
+      (.nothing nothing))))
+
+(def assoc-set? (k xs) (:: a (: alist a b) -> bool)
+  (just? (find ($ = (. _ 0) k)
+               (-> xs :: [#(<a> <b>)]))))
+
+(def assoc-filter (f xs) (:: (a -> bool) (: alist a b) -> [b])
+  (map ($' (. _ 1))
+       (filter ($ f (. _ 0))
+               (-> xs :: [#(<a> <b>)]))))
+
+(def assoc-all (k xs) (:: a (: alist a b) -> [b])
+  (assoc-filter (cut = k)
+                (-> xs :: [#(<a> <b>)])))
+
+(def assoc (k xs d) (:: a (: alist a b) b -> b)
+  (let ((a (assoc k xs)))
+    (typecase a
+      (.just a)
+      (.nothing d))))
+
+(def assoc-del (k xs) (:: a (: alist a b) -> (: alist a b))
+  (filter (fn (x)
+            (not (= (. x 0) k)))
+          (-> xs :: [#(<a> <b>)])))
+
+(def assoc-set (k v xs) (:: a b (: alist a b) -> (: alist a b))
+  (let* ((xs (-> xs :: [#(<a> <b>)]))
+         (i (index (fn (x)
+                     (= (. x 0) k))
+                   xs)))
+    (typecase i
+      (.nothing
+        (++ xs [#(k v)]))
+      (.just
+        (++ (take i xs)
+            (cons #(k v)
+                  (drop (+ i 1)
+                        xs)))))))
+
+(def repr (lst) (:: (: alist a b) -> string)
+  (++ "["
+      (join " "
+            (map (fn (x)
+                   (++ (repr (. x 0))
+                       ":"
+                       (repr (. x 1))))
+                 (-> lst :: [#(<a> <b>)])))
+      "]"))
+
+(def sort (f xs) (:: (a a -> bool) [a] -> [a])
+  (if (or (null? xs)
+          (null? (tail xs)))
+    xs
+    (let* ((x (head xs)))
+      (++ (sort f (filter (fn (y)
+                            (f y x))
+                          (tail xs)))
+          [x]
+          (sort f (filter (fn (y)
+                            (not (f y x)))
+                          (tail xs)))))))
+
+(def unique (f xs) (:: (a a -> bool) [a] -> [a])
+  (reverse
+    (foldl (fn (xs x) (:: [a] a -> [a])
+             (if (in? x xs f)
+               xs
+               (cons x xs)))
+           []
+           xs)))
+
+(def unique (xs) (:: [a] -> [a])
+  (unique = xs))
+
+(def compose (g f) (:: (b -> c) (a -> b) -> (a -> c))
+  (fn (x)
+    (g (f x))))
+
+(def cut (f a) (:: (a b -> c) a -> (b -> c))
+  (fn (b) (:: <b> -> <c>)
+    (f a b)))
+
+(def cut (f a b) (:: (a b c -> d) a b -> (c -> d))
+  (fn (c) (:: <c> -> <d>)
+    (f a b c)))
+
+(def flip (f) (:: (a b -> c) -> (b a -> c))
+  (fn (y x) (:: <b> <a> -> <c>)
+    (f x y)))

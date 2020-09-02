@@ -1,0 +1,16 @@
+(use core)
+
+(def sort-file (name) (:: string -> void)
+  (let ((in (case name
+              (("-") std-input)
+              (else (open name)))))
+    (for-each write-line
+              (sort < (read-lines in)))
+    (unless (= name "-")
+      (close in))))
+
+(let ((files (tail sys-argv)))
+  (if (null? files)
+    (sort-file "-")
+    (for-each sort-file files)))
+

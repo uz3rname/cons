@@ -1,0 +1,12 @@
+;result = 10
+(include "inc/memory.cons")
+
+(def test (x) (:: a -> a)
+  (def loop (i) (:: a -> a)
+    (if (>= i x)
+      i
+      (loop (+ i 1))))
+  (loop 0))
+
+(test 10)
+

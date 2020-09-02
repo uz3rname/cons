@@ -1,0 +1,12 @@
+;result = 34
+
+(def fib (a b n) (:: int int int -> int)
+  (if (= n 0)
+    a
+    (if (= n 1)
+      b
+      (+ (fib a b (- n 1))
+         (fib a b (- n 2))))))
+
+(fib 1 2 7)
+

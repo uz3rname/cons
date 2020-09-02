@@ -1,0 +1,31 @@
+;result = 45
+;output = thisistest
+(include "inc/memory.cons")
+(include "inc/list.cons")
+(include "inc/io.cons")
+
+(def print-list (xs) (:: [a] -> void)
+  (if (null? xs)
+    ()
+    (begin
+      (display (.car xs))
+      (print-list (.cdr xs)))))
+
+(let ((t #\t))
+  (print-list
+    (foldr
+      (fn (x xs)
+        (if (= x #\_)
+          #(t xs)
+          #(x xs)))
+      [(-> 0 :: char)]
+      [#\_ #\h #\i #\s #\i #\s #\_ #\e #\s #\_])))
+
+(let ((x 3)
+      (y 6)
+      (z 9))
+  (foldr
+    (fn (x y) (+ x y))
+    0
+    [1 2 x 4 5 y 7 8 z]))
+

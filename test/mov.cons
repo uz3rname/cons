@@ -1,0 +1,17 @@
+;output = test
+(include "inc/memory.cons")
+(include "inc/io.cons")
+
+(let ((buf (-> (mem-alloc 5) :: *byte)))
+  (mov! (-> #\t :: byte)
+        buf)
+  (mov! (-> #\e :: byte)
+        (offset buf 1))
+  (mov! (-> #\s :: byte)
+        (offset buf 2))
+  (mov! (-> #\t :: byte)
+        (offset buf 3))
+  (mov! (-> 0 :: byte)
+        (offset buf 4))
+  (printf buf))
+

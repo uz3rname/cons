@@ -1,0 +1,22 @@
+;result = 102
+(include "inc/memory.cons")
+
+(def fa (x) (:: int -> int)
+  (def fb (y) (:: int -> int)
+    (def fc (z) (:: int -> int)
+      (def fd (w) (:: int -> int)
+        (if (>= w 100)
+          w
+          (fa w)))
+      (if (>= z 100)
+        z
+        (fd (+ z 3))))
+    (if (>= y 100)
+      y
+      (fc (+ y 2))))
+  (if (>= x 100)
+    x
+    (fb (+ x 1))))
+
+(fa 0)
+

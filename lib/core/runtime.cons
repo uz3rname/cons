@@ -1,0 +1,45 @@
+(extern sys-exit
+  ((:: int -> throw) "exit"))
+
+(def write (fd s) (:: int cstring -> void)
+  (c-write fd s (c-strlen s)))
+
+(def die (s c) (:: string int -> throw)
+  (write 2 ($cstring "Fatal error:"))
+  (write 2 (string->cstring s))
+  (sys-exit c))
+
+(def die (s) (:: string -> throw)
+  (die s 1))
+
+(def sys-argv (-> [] :: [string]))
+(def argv-ptr (-> null-ptr :: *cstring))
+
+(def errno-location
+  (get-errno-location))
+
+(def sys-errno () (:: -> int)
+  (deref errno-location))
+
+(declare (hidden program-toplevel))
+(extern program-toplevel
+  ((:: -> int) "toplevel"))
+
+(declare (single main))
+(def main (argc argv) (:: int *cstring -> int)
+  (mem-init)
+  (set! sys-argv (argv-init argc argv))
+  (set! argv-ptr argv)
+  (program-toplevel)
+  0)
+
+(declare (foreign atexit))
+(extern sys-atexit
+  ((:: (-> void) -> void) "atexit"))
+
+(sys-atexit
+  (fn () (:: -> void)
+    (close std-input)
+    (close std-output)
+    (close std-error)))
+

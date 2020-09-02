@@ -1,0 +1,19 @@
+ROOT			= ..
+include $(ROOT)/mk/config.mk
+
+SOURCES			= @CORE_SRCS@
+TARGETS			= syntax/cons.vim
+INSTALL_SRCS	= $(TARGETS) ftdetect/cons.vim
+INSTALL_DIR		= $(VIM_DIR)
+INSTALL_MODE	?= 0644
+
+all: $(TARGETS)
+
+include $(ROOT)/mk/install.mk
+
+syntax/cons.vim: $(SOURCES) syntax/cons.vim.in
+	./mksyntax.sh $(LIB_DIR) $@
+
+clean:
+	rm -f $(TARGETS)
+

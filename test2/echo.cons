@@ -1,0 +1,17 @@
+(use core)
+
+(let* ((args (tail sys-argv))
+       (no-nl (and (not (null? args))
+                   (= (head args) "-n")))
+       (args (if no-nl
+               (tail args)
+               args)))
+  (unless (null? args)
+    (write-string (head args))
+    (for-each (fn (x)
+                (write-char #\space)
+                (write-string x))
+              (tail args)))
+  (unless no-nl
+    (write-char #\nl)))
+

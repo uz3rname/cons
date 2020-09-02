@@ -1,0 +1,52 @@
+;output = ynnnyynynnnyynyyynnyynynnyynyynyyn
+(extern putchar ((:: char -> void)))
+
+(def try (x)
+  (putchar (if x #\y #\n)))
+
+(try (= 15 15)) ;y
+(try (= 15 13)) ;n
+(try (= 15 19)) ;n
+
+(try (/= 15 15)) ;n
+(try (/= 15 13)) ;y
+(try (/= 15 19)) ;y
+
+(try (> 12 12)) ;n
+(try (> 12 10)) ;y
+(try (> 12 15)) ;n
+
+(try (< 12 12)) ;n
+(try (< 12 10)) ;n
+(try (< 12 15)) ;y
+
+(try (<= 12 12)) ;y
+(try (<= 12 10)) ;n
+(try (<= 12 15)) ;y
+
+(try (>= 12 12)) ;y
+(try (>= 12 10)) ;y
+(try (>= 12 15)) ;n
+
+(try (= -15 15)) ;n
+(try (= -15 -15)) ;y
+
+(try (/= -15 15)) ;y
+(try (/= -15 -15)) ;n
+
+(try (> 15 -15)) ;y
+(try (> -15 15)) ;n
+
+(try (< 15 -15)) ;n
+(try (< -15 15)) ;y
+
+(try (>= 15 -15)) ;y
+(try (>= -15 15)) ;n
+(try (>= -15 -15)) ;y
+(try (>= -15 -25)) ;y
+
+(try (<= 15 -15)) ;n
+(try (<= -15 15)) ;y
+(try (<= -15 -15)) ;y
+(try (<= -15 -25)) ;n
+

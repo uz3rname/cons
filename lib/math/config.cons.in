@@ -1,0 +1,2 @@
+(declare (link-with "@lib_m@"))
+

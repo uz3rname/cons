@@ -1,0 +1,8 @@
+;output = int:108,real:3.140,char:a
+(extern printf ((:: *byte ... -> void)))
+(printf
+  ($cstring "int:%d,real:%.3f,char:%c")
+  108
+  3.14
+  #\a)
+

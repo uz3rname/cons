@@ -1,0 +1,14 @@
+;input = this is test
+;output = this is test
+
+(include "core/macro.cons")
+
+(extern getchar ((:: -> int)))
+(extern putchar ((:: int -> void)))
+
+(let loop ((ch (getchar)))
+  (:: int -> void)
+  (putchar ch)
+  (unless (= ch 10)
+    (loop (getchar))))
+

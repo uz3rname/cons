@@ -1,0 +1,9 @@
+;result = 3
+(include "core/macro.cons")
+
+(def x 1)
+
+(let ((y x))
+  (set! x (+ x 1))
+  (+ x y))
+

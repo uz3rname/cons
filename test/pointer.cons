@@ -1,0 +1,16 @@
+;result = 45
+(include "inc/memory.cons")
+(include "inc/io.cons")
+
+(let ((x $"0123456789"))
+  (let loop ((i 0)
+             (r 0))
+    (:: int int -> int)
+    (printf $"i=%ld, r=%ld\n" i r)
+    (let ((b (deref (offset x i))))
+      (printf $"b=%ld\n" r)
+      (if (= b 0)
+        r
+        (loop (+ i 1)
+              (+ r (- b 48)))))))
+

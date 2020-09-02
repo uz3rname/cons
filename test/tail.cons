@@ -1,0 +1,11 @@
+;result = 14
+(include "inc/memory.cons")
+
+(def loop (x) (:: int -> int)
+  (let ((y (+ x 1)))
+    (if (>= y #xFFFFFF)
+      11
+      (loop y))))
+
+(+ 1 (loop 0) 2)
+

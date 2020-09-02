@@ -1,0 +1,3 @@
+(include "inc/memory.cons")
+(extern call/cc
+  ((:: ((a -> throw) -> a) -> a) "_call_cc"))

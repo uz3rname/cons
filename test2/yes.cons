@@ -1,0 +1,8 @@
+(use core)
+
+(let loop ((s (if (null? (tail sys-argv))
+                "y"
+                (head (tail sys-argv)))))
+  (write-line s)
+  (loop s))
+
